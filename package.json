@@ -3,6 +3,10 @@
   "version": "0.1.1",
   "description": "Agent toolkit for Huawei Cloud Community business — MCP tools and Skills so coding agents can read/write blogs, review content, and expose read-only data.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huaweicloud-mate/hdcommunity-toolkit.git"
+  },
   "files": [
     "bin",
     "src",
