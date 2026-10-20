@@ -1,14 +1,11 @@
 # Build and publish the package to npm via Trusted Publishing (OIDC).
 #
-# No long-lived token / secret is used. npm is deprecating 2FA-bypass tokens for
-# direct publishing; trusted publishing is the recommended replacement.
-#
 # Trigger: manual only (workflow_dispatch) — run from the repository's Actions tab.
 #
 # One-time setup on npm (package → Settings → Trusted Publishing → GitHub Actions):
 #   Organization or user: huaweicloud-mate
 #   Repository:            hdcommunity-toolkit
-#   Workflow filename:     npm-publish.yml
+#   Workflow filename:     npm-publish.yml   (filename only, exact, case-sensitive)
 #   Environment:           (leave empty)
 # Docs: https://docs.npmjs.com/trusted-publishers
 
@@ -27,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - run: npm ci
       - run: npm run smoke
 
@@ -36,14 +33,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # required for OIDC trusted publishing (+ provenance)
+      id-token: write # required for OIDC trusted publishing (+ automatic provenance)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      # Trusted publishing requires npm >= 11.5.1; Node 22 bundles npm 10.
-      - run: npm install -g npm@latest
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - name: Diagnostics
         run: |
@@ -51,8 +47,5 @@ jobs:
           echo "registry: $(npm config get registry)"
           echo "NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN:+present}${NODE_AUTH_TOKEN:-absent}"
           echo "ID_TOKEN_URL: ${ACTIONS_ID_TOKEN_REQUEST_URL:+present}${ACTIONS_ID_TOKEN_REQUEST_URL:-absent}"
-          echo "ID_TOKEN_TOKEN: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+present}${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-absent}"
-          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-          echo "GITHUB_WORKFLOW_REF: $GITHUB_WORKFLOW_REF"
       - name: Publish to npm (OIDC trusted publishing)
         run: npm publish
