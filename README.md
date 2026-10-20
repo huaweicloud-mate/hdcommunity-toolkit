@@ -73,6 +73,12 @@ npm run smoke   # 协议层冒烟（无需网络）
 npm start       # 启动 MCP server（stdio）
 ```
 
+## 文档
+
+- [设计方案](docs/hdcommunity-toolkit-design.md)
+- [实现规格 / 接口契约](docs/hdcommunity-toolkit-实现规格.md)
+- [迭代计划](docs/hdcommunity-toolkit-迭代计划.md)
+
 ## 许可
 
 Apache-2.0
