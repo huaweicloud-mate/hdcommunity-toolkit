@@ -1,8 +1,8 @@
 # Build and publish the package to npm.
 # Trigger: manual only (workflow_dispatch) — run from the repository's Actions tab.
 #
-# Requires repository secret `npm_token` (an npm "Automation"/Granular token with publish rights).
-# Set it with:  gh secret set npm_token --repo huaweicloud-mate/hdcommunity-toolkit
+# Requires repository secret `NPM_TOKEN` (an npm token with publish rights).
+# Set it with:  gh secret set NPM_TOKEN --repo huaweicloud-mate/hdcommunity-toolkit
 # or via Settings → Secrets and variables → Actions → New repository secret.
 
 name: Node.js Package
@@ -34,13 +34,13 @@ jobs:
       - run: npm ci
       - name: Preflight — check npm token
         env:
-          NPM_TOKEN: ${{ secrets.npm_token }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NPM_TOKEN" ]; then
-            echo "::error::Repository secret 'npm_token' is not set. Add it (Settings → Secrets and variables → Actions) or run: gh secret set npm_token --repo ${{ github.repository }}"
+            echo "::error::Repository secret 'NPM_TOKEN' is not set. Add it (Settings → Secrets and variables → Actions) or run: gh secret set NPM_TOKEN --repo ${{ github.repository }}"
             exit 1
           fi
       - name: Publish to npm
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
