@@ -1,21 +1,21 @@
-// HTTP client for backend calls.
+// HTTP client for backend calls (single merged backend service).
 //
-// Three lanes:
 //   callBlog  -> user-facing, injects AK/SK headers per request
 //   callShow  -> public read-only, no auth
 //   callAdmin -> admin, Bearer token (session cache or explicit)
+//   loginAdmin / logoutAdmin -> real /manage/auth/* endpoints
 //
 // All responses are unwrapped from the backend's ApiResponse{code,message,data}
 // into the toolkit result shape (see errors.mjs).
 
 import { request } from 'undici';
-import { BACKEND, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
+import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
 import { loadCredentials, hasCredentials } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 import { getSessionToken } from '../session.mjs';
 
-function buildUrl(base, path, query) {
-  const url = new URL(base.replace(/\/$/, '') + path);
+function buildUrl(path, query) {
+  const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null || v === '') continue;
@@ -25,8 +25,8 @@ function buildUrl(base, path, query) {
   return url;
 }
 
-async function doRequest(base, path, { method = 'GET', query, body, headers } = {}) {
-  const url = buildUrl(base, path, query);
+async function doRequest(path, { method = 'GET', query, body, headers } = {}) {
+  const url = buildUrl(path, query);
   let res;
   try {
     res = await request(url, {
@@ -85,12 +85,12 @@ export async function callBlog(method, path, { query, body } = {}) {
     'X-HW-REGION': creds.region || REGION,
   };
   if (creds.securityToken) headers['X-HW-Security-Token'] = creds.securityToken;
-  return unwrap(await doRequest(BACKEND.blog, path, { method, query, body, headers }));
+  return unwrap(await doRequest(path, { method, query, body, headers }));
 }
 
 /** Public read-only call — no auth. */
 export async function callShow(method, path, { query, body } = {}) {
-  return unwrap(await doRequest(BACKEND.blog, path, { method, query, body }));
+  return unwrap(await doRequest(path, { method, query, body }));
 }
 
 /**
@@ -103,21 +103,17 @@ export async function callShow(method, path, { query, body } = {}) {
 export async function callAdmin(sessionId, method, path, { query, body, token } = {}) {
   const t = token || getSessionToken(sessionId);
   if (!t) return fail(CODES.UNAUTHORIZED, '管理面未登录：请先调用 hdcommunity_admin_login');
-  return unwrap(
-    await doRequest(BACKEND.blogmng, path, { method, query, body, headers: { Authorization: `Bearer ${t}` } }),
-  );
+  return unwrap(await doRequest(path, { method, query, body, headers: { Authorization: `Bearer ${t}` } }));
 }
 
-/** Admin login — no bearer required. */
+/** Admin login — real /manage/auth/login, no bearer required. */
 export async function loginAdmin(username, password) {
-  return unwrap(await doRequest(BACKEND.blogmng, ADMIN_LOGIN_PATH, { method: 'POST', body: { username, password } }));
+  return unwrap(await doRequest(ADMIN_LOGIN_PATH, { method: 'POST', body: { username, password } }));
 }
 
 /** Admin logout — revokes the token on the backend. */
 export async function logoutAdmin(sessionId, token) {
   const t = token || getSessionToken(sessionId);
   if (!t) return ok(null);
-  return unwrap(
-    await doRequest(BACKEND.blogmng, ADMIN_LOGOUT_PATH, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }),
-  );
+  return unwrap(await doRequest(ADMIN_LOGOUT_PATH, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
 }

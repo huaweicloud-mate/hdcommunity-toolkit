@@ -67,6 +67,26 @@ export const BLOG_TOOLS = {
       inputSchema: { type: 'object', required: ['ref'], properties: { ref: P.str('博客 ref') } },
     },
     {
+      name: 'hdcommunity_blog_mine',
+      description: 'List my blogs (paginated, by status). 我的博客。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          status: P.int('状态：0草稿/1待审/2通过/3驳回（可选）'),
+          page_no: P.int('页码，默认 1'),
+          page_size: P.int('每页条数，默认 20'),
+        },
+      },
+    },
+    {
+      name: 'hdcommunity_blog_favorites',
+      description: 'List my favorited blogs. 我的收藏。',
+      inputSchema: {
+        type: 'object',
+        properties: { page_no: P.int('页码，默认 1'), page_size: P.int('每页条数，默认 20') },
+      },
+    },
+    {
       name: 'hdcommunity_draft_list',
       description: 'List my drafts. 草稿列表。',
       inputSchema: { type: 'object', properties: {} },
@@ -190,6 +210,10 @@ export const BLOG_TOOLS = {
         body: { ref: a.ref, title: a.title, content: a.content, intro: a.intro, cover_url: a.cover_url },
       }),
     'hdcommunity_blog_delete': (a) => callBlog('DELETE', `/agent/blog/${encodeURIComponent(a.ref)}`),
+    'hdcommunity_blog_mine': (a) =>
+      callBlog('GET', '/agent/blog/mine', { query: { status: a.status, page_no: a.page_no, page_size: a.page_size } }),
+    'hdcommunity_blog_favorites': (a) =>
+      callBlog('GET', '/agent/blog/favorites', { query: { page_no: a.page_no, page_size: a.page_size } }),
     'hdcommunity_draft_list': () => callBlog('GET', '/agent/blog/draft/list'),
     'hdcommunity_draft_save': (a) =>
       callBlog('POST', '/agent/blog/draft/save', { body: { draft_id: a.draft_id, title: a.title, content: a.content } }),

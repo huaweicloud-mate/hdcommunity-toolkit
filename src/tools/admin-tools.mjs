@@ -56,7 +56,7 @@ export const ADMIN_TOOLS = {
         properties: {
           id: P.int('博客 id'),
           action: { type: 'string', enum: ['approve', 'reject'], description: 'approve 通过 / reject 驳回' },
-          reason: P.str('审核意见（驳回时建议填写）'),
+          remark: P.str('审核意见（驳回时建议填写）'),
           ...TOKEN_PROP,
         },
       },
@@ -70,7 +70,7 @@ export const ADMIN_TOOLS = {
         properties: {
           ids: { type: 'array', items: { type: 'integer' }, description: '博客 id 列表' },
           action: { type: 'string', enum: ['approve', 'reject'] },
-          reason: P.str('审核意见'),
+          remark: P.str('审核意见'),
           ...TOKEN_PROP,
         },
       },
@@ -126,7 +126,7 @@ export const ADMIN_TOOLS = {
         properties: {
           id: P.int('评论 id'),
           action: { type: 'string', enum: ['approve', 'reject'] },
-          reason: P.str('审核意见'),
+          remark: P.str('审核意见'),
           ...TOKEN_PROP,
         },
       },
@@ -140,7 +140,7 @@ export const ADMIN_TOOLS = {
         properties: {
           ids: { type: 'array', items: { type: 'integer' } },
           action: { type: 'string', enum: ['approve', 'reject'] },
-          reason: P.str('审核意见'),
+          remark: P.str('审核意见'),
           ...TOKEN_PROP,
         },
       },
@@ -182,12 +182,12 @@ export const ADMIN_TOOLS = {
       }),
     'hdcommunity_admin_blog_review': (a, ctx) =>
       callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review', {
-        body: { id: a.id, action: a.action, reason: a.reason },
+        body: { id: a.id, action: a.action, remark: a.remark },
         token: a.token,
       }),
     'hdcommunity_admin_blog_review_batch': (a, ctx) =>
       callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review/batch', {
-        body: { ids: a.ids, action: a.action, reason: a.reason },
+        body: { ids: a.ids, action: a.action, remark: a.remark },
         token: a.token,
       }),
     'hdcommunity_admin_blog_online': (a, ctx) =>
@@ -212,12 +212,12 @@ export const ADMIN_TOOLS = {
       }),
     'hdcommunity_admin_comment_review': (a, ctx) =>
       callAdmin(ctx.sessionId, 'POST', '/agent/admin/comment/review', {
-        body: { id: a.id, action: a.action, reason: a.reason },
+        body: { id: a.id, action: a.action, remark: a.remark },
         token: a.token,
       }),
     'hdcommunity_admin_comment_review_batch': (a, ctx) =>
       callAdmin(ctx.sessionId, 'POST', '/agent/admin/comment/review/batch', {
-        body: { ids: a.ids, action: a.action, reason: a.reason },
+        body: { ids: a.ids, action: a.action, remark: a.remark },
         token: a.token,
       }),
     'hdcommunity_admin_comment_online': (a, ctx) =>

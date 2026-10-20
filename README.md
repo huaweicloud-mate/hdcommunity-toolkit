@@ -53,9 +53,9 @@ npx hdcommunity-toolkit status
 
 | 环境变量 | 默认 | 说明 |
 |---|---|---|
-| `HDCOMMUNITY_BLOG_BASE` | `http://127.0.0.1:8080/api/v1/blogservice` | 用户面后端 |
-| `HDCOMMUNITY_BLOGMNG_BASE` | `http://127.0.0.1:8081/api/v1/blogmngservice` | 管理面后端 |
-| `HDCOMMUNITY_ADMIN_LOGIN_PATH` | `/admin/auth/login` | 管理面登录路径（Agent 聚合接口就绪后可切换） |
+| `HDCOMMUNITY_BASE` | `http://127.0.0.1:8080/api/v1/blogservice` | 后端（用户面 + 管理面**合并**单服务） |
+| `HDCOMMUNITY_ADMIN_LOGIN_PATH` | `/manage/auth/login` | 管理面登录路径 |
+| `HDCOMMUNITY_ADMIN_LOGOUT_PATH` | `/manage/auth/logout` | 管理面注销路径 |
 | `HW_REGION` | `cn-north-4` | 区域 |
 
 ## Skill
