@@ -1,6 +1,6 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent toolkit for Huawei Cloud Community business — MCP tools and Skills so coding agents can read/write blogs, review content, and expose read-only data.",
   "type": "module",
   "files": [

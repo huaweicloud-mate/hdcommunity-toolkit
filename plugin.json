@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hdcommunity-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for blog authoring, content review, and read-only data exposure.",
   "author": {
     "name": "HuaweiCloud Community",
