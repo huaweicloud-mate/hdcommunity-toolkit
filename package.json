@@ -13,8 +13,8 @@
     ".codex-plugin"
   ],
   "bin": {
-    "hdcommunity-toolkit": "./bin/setup.cjs",
-    "hdcommunity-toolkit-mcp": "./src/mcp-server.mjs"
+    "hdcommunity-toolkit": "bin/setup.cjs",
+    "hdcommunity-toolkit-mcp": "src/mcp-server.mjs"
   },
   "scripts": {
     "start": "node ./src/mcp-server.mjs",
