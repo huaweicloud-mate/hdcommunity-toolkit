@@ -1,0 +1,73 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api/v1/blogservice
+
+spring:
+  application:
+    name: huaweicloud-open-blog-service
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:huaweicloud_blog}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 3000ms
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    table: flyway_schema_history_blog
+    encoding: UTF-8
+    baseline-on-migrate: true
+    baseline-version: 0
+    out-of-order: false
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+blogservice:
+  cors:
+    # 用户面门户(3008) + 管理台(3007) + 华为云各环境子域
+    allowed-origins: ${CORS_ORIGINS:https://*.huaweicloud.com,https://localhost.huaweicloud.com:3007,http://localhost:3007,https://localhost.huaweicloud.com:3008,http://localhost:3008}
+
+# Agent 用户面（AK/SK -> IAM 换 domainId）
+agent:
+  auth:
+    enabled: ${AGENT_AUTH_ENABLED:true}
+  iam-domains-endpoint: ${IAM_DOMAINS_ENDPOINT:https://iam.myhuaweicloud.com}
+  rate-limit-count: ${AGENT_RATE_LIMIT_COUNT:600}
+  rate-limit-window-seconds: ${AGENT_RATE_LIMIT_WINDOW:60}
+
+# 管理台（合并后挂载在 /manage/**）
+manage:
+  auth:
+    enabled: ${AUTH_ENABLED:true}
+    token-ttl-minutes: ${AUTH_TOKEN_TTL_MINUTES:120}
+  login:
+    rate-limit-count: ${LOGIN_RATE_LIMIT_COUNT:20}
+    rate-limit-window-seconds: ${LOGIN_RATE_LIMIT_WINDOW:60}
+
+logging:
+  level:
+    com.huaweicloud.blog: info
