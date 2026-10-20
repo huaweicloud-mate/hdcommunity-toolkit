@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "hdcommunity-toolkit": {
+      "command": "node",
+      "args": ["./src/mcp-server.mjs"],
+      "cwd": ".",
+      "env": {
+        "HDCOMMUNITY_AGENT_TOOLKIT_MODE": "local"
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "hdcommunity-toolkit",
+  "version": "0.1.0",
+  "description": "Agent toolkit for Huawei Cloud Community business — MCP tools and Skills so coding agents can read/write blogs, review content, and expose read-only data.",
+  "type": "module",
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "plugin.json",
+    "mcp.json",
+    ".claude-plugin",
+    ".codex-plugin"
+  ],
+  "bin": {
+    "hdcommunity-toolkit": "./bin/setup.cjs",
+    "hdcommunity-toolkit-mcp": "./src/mcp-server.mjs"
+  },
+  "scripts": {
+    "start": "node ./src/mcp-server.mjs",
+    "smoke": "node ./scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "undici": "^8.11.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "huaweicloud",
+    "huawei-cloud",
+    "community",
+    "blog",
+    "agent",
+    "mcp",
+    "skills",
+    "opencode",
+    "codex",
+    "codearts"
+  ],
+  "license": "Apache-2.0"
+}
