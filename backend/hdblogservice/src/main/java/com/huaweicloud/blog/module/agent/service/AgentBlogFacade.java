@@ -216,7 +216,6 @@ public class AgentBlogFacade {
 
     public AgentCommentListVO listComments(String id, Integer level, long pageNo, long pageSize) {
         AgentCommentListVO vo = new AgentCommentListVO();
-        Long ownerId = null;
         if (level != null && level == 2) {
             Long parentId = RefUtil.parseId(id);
             if (parentId == null) {
