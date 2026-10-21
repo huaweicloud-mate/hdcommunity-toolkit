@@ -14,6 +14,28 @@
 
 **要求**：Node.js ≥ 22。
 
+### 让 Agent 帮你安装（推荐：把下面提示词复制给你的 AI 编码助手）
+
+```
+请帮我安装「华为云社区 Agent 工具包 hdcommunity-toolkit」，步骤：
+1. 运行：npx --yes hdcommunity-toolkit install --target all
+   （按你使用的助手替换 --target：opencode / codex / codex-desktop / codearts /
+     codearts-work / workbuddy / dsh / hermes / openclaw / atomcode / all）
+2. 运行 npx --yes hdcommunity-toolkit status 确认安装结果，并告诉我装了几个 skill、写入了哪个 MCP 配置。
+3. 提醒我：安装后需要「重启当前会话」才能加载新工具与 Skill。
+4. 提醒我配置用户面 AK/SK（三选一）：
+   - 环境变量 HW_ACCESS_KEY / HW_SECRET_KEY（可选 HW_SECURITY_TOKEN）
+   - 写入 ~/.config/huaweicloud/credentials.json：
+     {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
+   - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
+安装完成后我应能用这些能力（共 35 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+点赞/收藏/关注、上传图片；管理面登录并审核博客与评论、上下线、置顶、审核记录、工作台统计；
+对外公开只读的博客列表/详情。另含 4 个 Skill：hd-blog-author / hd-blog-operator /
+hd-blog-promote / hd-experience。
+```
+
+### 手动安装
+
 ```bash
 # 安装到指定 Agent（缺省 opencode）
 npx hdcommunity-toolkit install --target opencode
