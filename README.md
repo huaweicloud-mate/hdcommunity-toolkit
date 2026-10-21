@@ -64,6 +64,38 @@ npx hdcommunity-toolkit help
 2. `~/.config/huaweicloud/credentials.json`（格式 `{ak, sk, securityToken}`）
 3. `~/.hcloud/config.json`（KooCLI profile）
 
+### 如何配置用户面 AK/SK
+
+用户面工具每次调用都需要 AK/SK，按优先级任选一种配置：
+
+**① 环境变量**（最快，适合容器/CI）
+
+- 设置 `HW_ACCESS_KEY` / `HW_SECRET_KEY`（可选 `HW_SECURITY_TOKEN`）；
+- 在 Agent 的 MCP 配置 `env` 里传入，或直接在 shell 中 export。
+- ⚠️ 不要把生产 AK/SK 写进会提交到 git 的配置文件。
+
+**② 统一凭据文件**（推荐，一次配置长期可用）
+
+- 路径：`~/.config/huaweicloud/credentials.json`
+  - Windows：`%USERPROFILE%\.config\huaweicloud\credentials.json`
+- 内容：
+
+  ```json
+  { "ak": "<你的AK>", "sk": "<你的SK>", "securityToken": "", "region": "cn-north-4" }
+  ```
+
+- 若你已安装 **huaweicloud-devkit**，可直接用它生成该文件：
+
+  ```bash
+  npx --yes huaweicloud-devkit auth init
+  ```
+
+**③ KooCLI profile**（兜底）：`~/.hcloud/config.json`
+
+> 配置完成后，可调用 `hdcommunity_user_stat` 或 `hdcommunity_blog_list` 验证身份是否生效（返回 `AUTH_MISSING` / `AUTH_FAILED` 即表示 AK/SK 缺失或无效）。
+
+**管理面**不走 AK/SK：调用 `hdcommunity_admin_login { username, password }` 用内部账号登录即可（token 会在当前会话内缓存）。
+
 ---
 
 ## 配置
