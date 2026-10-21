@@ -34,6 +34,10 @@
 hd-blog-promote / hd-experience。
 ```
 
+> **极简版（一行提示词）**：
+>
+> `请阅读 https://github.com/huaweicloud-mate/hdcommunity-toolkit ，帮我安装这个社区 Agent 工具包，并配好 AK/SK（没有就复用 devkit 的）。`
+
 ### 手动安装
 
 ```bash
