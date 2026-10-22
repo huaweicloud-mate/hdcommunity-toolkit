@@ -28,7 +28,7 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 35 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+安装完成后我应能用这些能力（共 36 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
 点赞/收藏/关注、上传图片；管理面登录并审核博客与评论、上下线、置顶、审核记录、工作台统计；
 对外公开只读的博客列表/详情。另含 4 个 Skill：hd-blog-author / hd-blog-operator /
 hd-blog-promote / hd-experience。
@@ -122,6 +122,8 @@ npx hdcommunity-toolkit help
 
 **管理面**不走 AK/SK：调用 `hdcommunity_admin_login { username, password }` 用内部账号登录即可（token 会在当前会话内缓存）。
 
+**管理面 401 自动重登**（可选，推荐配置）：设置环境变量 `HDCOMMUNITY_ADMIN_USER` / `HDCOMMUNITY_ADMIN_PASS`（或在 `~/.config/huaweicloud/credentials.json` 中写入 `admin_user` / `admin_pass`），管理面工具遇登录态过期（401）会自动重登并重试一次；重登失败才返回 `NEED_LOGIN`（附配置指引）。
+
 ---
 
 ## 配置
@@ -131,6 +133,8 @@ npx hdcommunity-toolkit help
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 后端地址（用户面 + 管理面**合并**单服务） |
 | `HDCOMMUNITY_ADMIN_LOGIN_PATH` | `/manage/auth/login` | 管理面登录路径 |
 | `HDCOMMUNITY_ADMIN_LOGOUT_PATH` | `/manage/auth/logout` | 管理面注销路径 |
+| `HDCOMMUNITY_ADMIN_USER` / `HDCOMMUNITY_ADMIN_PASS` | 空 | 管理面账号（401 自动重登用；缺省回退 credentials.json 的 admin_user/admin_pass） |
+| `HDCOMMUNITY_ADMIN_BLOG_DETAIL_PATH` | `/manage/blog/{id}/detail` | 管理面博客详情路径（后端 A3 契约，`{id}` 占位） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDCOMMUNITY_TIMEOUT_MS` | `30000` | 请求超时（毫秒） |
 
@@ -138,7 +142,7 @@ npx hdcommunity-toolkit help
 
 ---
 
-## 工具清单（共 35 个）
+## 工具清单（共 36 个）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -165,21 +169,22 @@ npx hdcommunity-toolkit help
 | `hdcommunity_user_stat` | 我的统计（博客数/阅读/点赞） |
 | `hdcommunity_file_upload` | 上传图片（封面/正文用，base64） |
 
-### 管理面（13）— 需内部登录
+### 管理面（14）— 需内部登录
 
 | 工具 | 作用 |
 |---|---|
 | `hdcommunity_admin_login` | 管理面登录（内部账号密码）→ token |
 | `hdcommunity_admin_logout` | 注销（吊销 token） |
-| `hdcommunity_admin_blog_page` | 博客分页（按状态/上线/关键词筛选） |
+| `hdcommunity_admin_blog_page` | 博客分页（按状态/上线/关键词筛选；待审最老优先 + 待审时长；正文摘要化 content_preview/content_length） |
+| `hdcommunity_admin_blog_detail` | 博客审核详情（include_content 可控；含审核历史与 risk_flags；后端 A3 未就绪时自动降级组合并说明） |
 | `hdcommunity_admin_blog_review` | 单条审核（`approve` / `reject` + 意见） |
-| `hdcommunity_admin_blog_review_batch` | 批量审核 |
+| `hdcommunity_admin_blog_review_batch` | 批量审核（ids 或 filter{status,keyword,author}；dry_run 预览；按 id 回执明细 + 失败自动重试一次） |
 | `hdcommunity_admin_blog_online` | 博客上线 / 下线 |
 | `hdcommunity_admin_blog_top` | 博客置顶 / 取消 |
 | `hdcommunity_admin_blog_records` | 博客审核记录 |
-| `hdcommunity_admin_comment_page` | 评论分页 |
+| `hdcommunity_admin_comment_page` | 评论分页（待审最老优先 + 待审时长） |
 | `hdcommunity_admin_comment_review` | 评论审核 |
-| `hdcommunity_admin_comment_review_batch` | 评论批量审核 |
+| `hdcommunity_admin_comment_review_batch` | 评论批量审核（ids 或 filter；dry_run 预览；按 id 回执明细） |
 | `hdcommunity_admin_comment_online` | 评论上线 / 下线 |
 | `hdcommunity_admin_stats` | 工作台统计（待审/通过/驳回/上线/置顶） |
 
@@ -211,18 +216,25 @@ npx hdcommunity-toolkit help
 
 ### 二、评审 / 审核（运营 · 管理面）
 
-1. 登录：`hdcommunity_admin_login { username, password }` → token 会话缓存。
-2. 取待审：`hdcommunity_admin_blog_page { status: 1, page_no: 1, page_size: 10 }`。
-3. 审核：
+1. 登录：`hdcommunity_admin_login { username, password }` → token 会话缓存（配置 `HDCOMMUNITY_ADMIN_USER/PASS` 后 401 自动重登，无需人工介入）。
+2. 取待审：`hdcommunity_admin_blog_page { status: 1, page_no: 1, page_size: 10 }` → **最老待审优先**排序，每条带 `pending_duration` 待审时长；列表正文已摘要化（`content_preview` + `content_length`），不会被超长正文冲爆上下文。
+3. 看详情：`hdcommunity_admin_blog_detail { id, include_content? }` → 完整正文（可控）+ 审核历史 + `risk_flags`（script/iframe/style 检测等）。
+4. 审核：
    - 单条：`hdcommunity_admin_blog_review { id, action: "approve" | "reject", remark? }`
-   - 批量：`hdcommunity_admin_blog_review_batch { ids: [...], action, remark? }`
-4. 上线 / 置顶：
+   - 批量（建议先 `dry_run` 预览核对）：
+     ```jsonc
+     // 预览：只返回 id + 摘要列表，不写库
+     hdcommunity_admin_blog_review_batch { action: "approve", filter: { status: 1, keyword: "云原生" }, dry_run: true }
+     // 确认后执行：回执按 id 给出每条成功/失败明细，失败项自动重试一次
+     hdcommunity_admin_blog_review_batch { ids: [1, 2, 3], action: "approve" }
+     ```
+5. 上线 / 置顶：
    - `hdcommunity_admin_blog_online { id, online: 1 }`（仅已通过可上下线）
    - `hdcommunity_admin_blog_top { id, top: 1 }`（仅已通过且已上线可置顶）
-5. 审计：`hdcommunity_admin_blog_records { id, page_no, page_size }`。
-6. 评论审核：`hdcommunity_admin_comment_page { status: 1 }` → `hdcommunity_admin_comment_review(_batch)` → `hdcommunity_admin_comment_online`。
-7. 汇报：`hdcommunity_admin_stats`。
-8. 注销：`hdcommunity_admin_logout`。
+6. 审计：`hdcommunity_admin_blog_records { id, page_no, page_size }`。
+7. 评论审核：`hdcommunity_admin_comment_page { status: 1 }` → `hdcommunity_admin_comment_review(_batch)` → `hdcommunity_admin_comment_online`。
+8. 汇报：`hdcommunity_admin_stats`。
+9. 注销：`hdcommunity_admin_logout`。
 
 ### 三、评论与社交（用户面）
 
@@ -254,6 +266,7 @@ npx hdcommunity-toolkit help
 ```bash
 npm install
 npm run smoke   # 协议层冒烟（无需网络）
+node --test test/   # 单元测试（本地 fake 后端，无需外部网络）
 npm start       # 启动 MCP server（stdio）
 ```
 
