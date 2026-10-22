@@ -25,6 +25,21 @@ const BLOGS = [
   { id: 4, title: '已通过的博客', author: 'carol', status: 2, update_time: now - 10 * 3600_000, content: '<p>ok</p>' },
 ];
 
+// status=5: 120 items; 'alice' matches only exist from item 61 onwards, so page 1
+// (50 items) has ZERO author matches — old code wrongly stopped paginating there.
+const PAGED = Array.from({ length: 120 }, (_, i) => ({
+  id: 1000 + i, title: `分页待审 ${i}`, author: i < 60 ? 'someoneelse' : 'alice', status: 5,
+  update_time: now - i * 1000, content: '<p>x</p>',
+}));
+
+// status=6: 600 'dave' items — exceeds the 500-per-batch hard cap (10 pages x 50).
+const TRUNCATED = Array.from({ length: 600 }, (_, i) => ({
+  id: 2000 + i, title: `截断待审 ${i}`, author: 'dave', status: 6,
+  update_time: now - i * 1000, content: '<p>y</p>',
+}));
+
+const ALL = [...BLOGS, ...PAGED, ...TRUNCATED];
+
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -60,9 +75,12 @@ const server = createServer(async (req, res) => {
 
   if (path === '/agent/admin/blog/page' && req.method === 'GET') {
     const status = url.searchParams.get('status');
-    let list = BLOGS;
-    if (status !== null && status !== '') list = BLOGS.filter((b) => b.status === Number(status));
-    return json(res, 200, { code: 0, data: { total: list.length, list: list.map((b) => ({ ...b })) } });
+    let list = ALL;
+    if (status !== null && status !== '') list = ALL.filter((b) => b.status === Number(status));
+    const page_no = Math.max(1, Number(url.searchParams.get('page_no') || 1));
+    const page_size = Math.max(1, Number(url.searchParams.get('page_size') || 20));
+    const start = (page_no - 1) * page_size;
+    return json(res, 200, { code: 0, data: { total: list.length, list: list.slice(start, start + page_size).map((b) => ({ ...b })) } });
   }
 
   if (path === '/manage/blog/1/detail' && req.method === 'GET') {
@@ -232,6 +250,29 @@ test('A3/A4: detail include_content=false summarizes; risk_flags detect script',
   assert.equal(r.data.content, undefined);
   assert.ok(typeof r.data.content_preview === 'string');
   assert.equal(r.data.risk_flags.has_script, true); // blog 3 contains <script>
+});
+
+test('B2 fix: author filter keeps paginating when the current page has no matches', async () => {
+  const r = await callTool(
+    'hdcommunity_admin_blog_review_batch',
+    { action: 'approve', dry_run: true, filter: { status: 5, author: 'alice' } },
+    { sessionId: 's3' },
+  );
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.data.affected, 60); // all alice items live on pages 2/3 — old code collected 0
+  assert.equal(r.data.truncated, undefined); // natural end (120 items < 500 cap)
+});
+
+test('B2 advisory: exceeding the 500-per-batch cap sets truncated + note in the receipt', async () => {
+  const r = await callTool(
+    'hdcommunity_admin_blog_review_batch',
+    { action: 'approve', dry_run: true, filter: { status: 6, author: 'dave' } },
+    { sessionId: 's3' },
+  );
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.data.affected, 500); // hard cap: 10 pages x 50
+  assert.equal(r.data.truncated, true);
+  assert.match(r.data.truncated_note, /500/);
 });
 
 test('smoke regression: tool list includes the new detail tool', async () => {

@@ -150,16 +150,18 @@ async function collectByFilter(sessionId, kind, filter, token) {
   const MAX_PAGES = 10; // hard cap: 500 items per batch
   const ids = [];
   const items = [];
+  let truncated = false;
   for (let page = 1; page <= MAX_PAGES; page++) {
     const r = await callAdmin(sessionId, 'GET', pagePath, {
       query: { page_no: page, page_size: PAGE_SIZE, status: filter.status, keyword: filter.keyword },
       token,
     });
     if (!r.ok) return r;
-    let list = extractList(r.data);
+    const rawList = extractList(r.data); // original page BEFORE author filtering
+    let list = rawList;
     if (filter.author) {
       const want = String(filter.author).toLowerCase();
-      list = list.filter((it) => {
+      list = rawList.filter((it) => {
         const a = it?.author ?? it?.author_name ?? it?.username ?? it?.nickname ?? '';
         return String(a).toLowerCase() === want;
       });
@@ -168,11 +170,14 @@ async function collectByFilter(sessionId, kind, filter, token) {
       ids.push(it.id);
       items.push(previewItem(it));
     }
+    // Termination must be based on the RAW page: an author-filtered empty page
+    // does NOT mean the backend has no more pages (targets may be on later pages).
     const total = Number(r.data?.total ?? 0);
-    const seen = (page - 1) * PAGE_SIZE + extractList(r.data).length;
-    if (list.length === 0 || (total > 0 && seen >= total) || extractList(r.data).length < PAGE_SIZE) break;
+    const seen = (page - 1) * PAGE_SIZE + rawList.length;
+    if (rawList.length === 0 || (total > 0 && seen >= total) || rawList.length < PAGE_SIZE) break;
+    if (page === MAX_PAGES) truncated = true; // hit the hard cap without a natural end
   }
-  return ok({ ids, items, matched: ids.length });
+  return ok({ ids, items, matched: ids.length, truncated });
 }
 
 /**
@@ -186,6 +191,7 @@ async function reviewBatch(kind, a, ctx) {
 
   let ids = Array.isArray(a.ids) ? a.ids.map(Number).filter(Number.isFinite) : [];
   let previewItems = null;
+  let truncated = false;
 
   if (ids.length === 0) {
     const filter = a.filter || {};
@@ -196,6 +202,7 @@ async function reviewBatch(kind, a, ctx) {
     if (!collected.ok) return collected;
     ids = collected.data.ids;
     previewItems = collected.data.items;
+    truncated = Boolean(collected.data.truncated);
     if (ids.length === 0) {
       return ok({ dry_run: Boolean(a.dry_run), affected: 0, failed: 0, matched: 0, results: [], message: '没有匹配条件的条目' });
     }
@@ -203,7 +210,13 @@ async function reviewBatch(kind, a, ctx) {
 
   if (a.dry_run) {
     const items = previewItems || ids.map((id) => ({ id }));
-    return ok({ dry_run: true, affected: items.length, items, note: 'dry_run 预览：未执行任何审核写操作' });
+    return ok({
+      dry_run: true,
+      affected: items.length,
+      items,
+      note: 'dry_run 预览：未执行任何审核写操作',
+      ...(truncated ? { truncated: true, truncated_note: '匹配条目较多，已按单批 500 条上限截断，可能仍有未收集到的匹配条目；建议收窄 filter 分批处理' } : {}),
+    });
   }
 
   const results = [];
@@ -225,7 +238,13 @@ async function reviewBatch(kind, a, ctx) {
       results.push({ id, ok: false, retried, error: r.error });
     }
   }
-  return ok({ affected, failed: failedCount, total: ids.length, results });
+  return ok({
+    affected,
+    failed: failedCount,
+    total: ids.length,
+    results,
+    ...(truncated ? { truncated: true, truncated_note: '匹配条目较多，已按单批 500 条上限截断，可能仍有未收集到的匹配条目；建议收窄 filter 分批处理' } : {}),
+  });
 }
 
 /** A3 degraded path: locate one blog (full content) by scanning the page API. */
