@@ -5,6 +5,7 @@
 import { callAdmin, loginAdmin, logoutAdmin } from './http-client.mjs';
 import { setSessionToken, clearSessionToken, getSession } from '../session.mjs';
 import { ok } from '../errors.mjs';
+import { scanBlog, attachRiskCheck, summarizeBatchRisk } from './risk-control.mjs';
 
 const P = {
   int: (description) => ({ type: 'integer', description }),
@@ -49,7 +50,8 @@ export const ADMIN_TOOLS = {
     },
     {
       name: 'hdcommunity_admin_blog_review',
-      description: 'Review a single blog: approve or reject. 博客审核。',
+      description:
+        'Review a single blog: approve or reject. Runs a local content risk check (mark-only) first when title/content is provided. 博客审核（可自动风控）。',
       inputSchema: {
         type: 'object',
         required: ['id', 'action'],
@@ -57,13 +59,16 @@ export const ADMIN_TOOLS = {
           id: P.int('博客 id'),
           action: { type: 'string', enum: ['approve', 'reject'], description: 'approve 通过 / reject 驳回' },
           remark: P.str('审核意见（驳回时建议填写）'),
+          title: P.str('博客标题（可选；提供后审核前自动执行本地风控）'),
+          content: P.str('博客正文（可选；提供后审核前自动执行本地风控）'),
           ...TOKEN_PROP,
         },
       },
     },
     {
       name: 'hdcommunity_admin_blog_review_batch',
-      description: 'Batch review blogs. 博客批量审核。',
+      description:
+        'Batch review blogs. Runs a local content risk check (mark-only) first when items provide title/content. 博客批量审核（可自动风控）。',
       inputSchema: {
         type: 'object',
         required: ['ids', 'action'],
@@ -71,6 +76,14 @@ export const ADMIN_TOOLS = {
           ids: { type: 'array', items: { type: 'integer' }, description: '博客 id 列表' },
           action: { type: 'string', enum: ['approve', 'reject'] },
           remark: P.str('审核意见'),
+          items: {
+            type: 'array',
+            description: '待审博客文本（可选）：[{id, title, content}]，提供后逐条自动风控',
+            items: {
+              type: 'object',
+              properties: { id: P.int('博客 id'), title: P.str('标题'), content: P.str('正文') },
+            },
+          },
           ...TOKEN_PROP,
         },
       },
@@ -180,16 +193,40 @@ export const ADMIN_TOOLS = {
         query: { page_no: a.page_no, page_size: a.page_size, status: a.status, online: a.online, keyword: a.keyword },
         token: a.token,
       }),
-    'hdcommunity_admin_blog_review': (a, ctx) =>
-      callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review', {
+    'hdcommunity_admin_blog_review': async (a, ctx) => {
+      // Risk control runs BEFORE the review call; mark-only, never blocks (Issue #3).
+      const r = await callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review', {
         body: { id: a.id, action: a.action, remark: a.remark },
         token: a.token,
-      }),
-    'hdcommunity_admin_blog_review_batch': (a, ctx) =>
-      callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review/batch', {
+      });
+      return attachRiskCheck(r, a.title, a.content);
+    },
+    'hdcommunity_admin_blog_review_batch': async (a, ctx) => {
+      const r = await callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/review/batch', {
         body: { ids: a.ids, action: a.action, remark: a.remark },
         token: a.token,
-      }),
+      });
+      // Per-item mark-only risk checks (matched by id), aggregated summary.
+      const items = Array.isArray(a.items) ? a.items : [];
+      const byId = new Map(items.map((it) => [Number(it.id), it]));
+      let reports;
+      try {
+        reports = a.ids.map((id) => {
+          const it = byId.get(id);
+          return it && (it.title || it.content) ? scanBlog(it.title, it.content) : null;
+        });
+      } catch {
+        reports = [];
+      }
+      const checked = reports.filter(Boolean);
+      if (!checked.length) return attachRiskCheck(r);
+      if (r && r.ok) {
+        r.data = { ...(r.data ?? {}), risk_check: { ...summarizeBatchRisk(checked), items: checked } };
+      } else if (r) {
+        r.risk_check = { ...summarizeBatchRisk(checked), items: checked };
+      }
+      return r;
+    },
     'hdcommunity_admin_blog_online': (a, ctx) =>
       callAdmin(ctx.sessionId, 'POST', '/agent/admin/blog/online', {
         body: { id: a.id, online: a.online },
