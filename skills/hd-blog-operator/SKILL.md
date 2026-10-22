@@ -1,7 +1,7 @@
 ---
 name: hd-blog-operator
 description: 'Use when an operator wants to review blogs/comments, take them online/offline, top them, or check the workbench stats on Huawei Cloud Community via the toolkit. Triggers: 审核博客, 审核评论, 待审清理, 上线, 下线, 置顶, 运营, review blog, approve blog. NOT for: authoring blogs (use hd-blog-author).'
-version: 1
+version: 2
 ---
 
 # HDCommunity Blog Operator
