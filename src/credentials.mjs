@@ -65,6 +65,32 @@ export function hasCredentials(creds) {
   return Boolean(creds?.ak && creds?.sk);
 }
 
+/**
+ * Resolve admin console credentials for 401 auto-relogin (B1).
+ * Priority: env HDCOMMUNITY_ADMIN_USER/PASS > credentials.json admin_user/admin_pass.
+ * @returns {{adminUser: string, adminPass: string}}
+ */
+export function loadAdminCredentials() {
+  let adminUser = process.env.HDCOMMUNITY_ADMIN_USER || '';
+  let adminPass = process.env.HDCOMMUNITY_ADMIN_PASS || '';
+  if (!adminUser || !adminPass) {
+    const vault = readJson(join(homedir(), '.config', 'huaweicloud', 'credentials.json'));
+    if (vault) {
+      adminUser = adminUser || vault.admin_user || vault.adminUser || '';
+      adminPass = adminPass || vault.admin_pass || vault.adminPass || '';
+    }
+  }
+  return { adminUser, adminPass };
+}
+
+/**
+ * @param {{adminUser?: string, adminPass?: string}} creds
+ * @returns {boolean}
+ */
+export function hasAdminCredentials(creds) {
+  return Boolean(creds?.adminUser && creds?.adminPass);
+}
+
 /** Mask an AK for logs. */
 export function maskAk(ak) {
   if (!ak || typeof ak !== 'string') return '';
