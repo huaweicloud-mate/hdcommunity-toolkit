@@ -22,7 +22,8 @@
   },
   "scripts": {
     "start": "node ./src/mcp-server.mjs",
-    "smoke": "node ./scripts/smoke.mjs"
+    "smoke": "node ./scripts/smoke.mjs",
+    "test": "node --test tests/"
   },
   "dependencies": {
     "undici": "^8.11.2"
