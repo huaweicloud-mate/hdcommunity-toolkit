@@ -266,7 +266,7 @@ npx hdcommunity-toolkit help
 ```bash
 npm install
 npm run smoke   # 协议层冒烟（无需网络）
-node --test test/   # 单元测试（本地 fake 后端，无需外部网络）
+node --test test/review-enhancements.test.mjs   # 单元测试（本地 fake 后端，无需外部网络）
 npm start       # 启动 MCP server（stdio）
 ```
 
