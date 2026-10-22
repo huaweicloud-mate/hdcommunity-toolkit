@@ -22,13 +22,23 @@ Admin-side workflows over MCP: log in with the **internal account** (not AK/SK),
 |---|---|---|
 | 1. Login | `hdcommunity_admin_login` | internal `username`/`password`; token cached for the session |
 | 2. Pending blogs | `hdcommunity_admin_blog_page` | `status=1` = pending |
-| 3. Review | `hdcommunity_admin_blog_review` | `action`: `approve` / `reject` (+`reason`) |
-| 3b. Batch | `hdcommunity_admin_blog_review_batch` | `ids:[]`, `action` |
+| 3. Review | `hdcommunity_admin_blog_review` | `action`: `approve` / `reject` (+`reason`); pass `title`/`content` of the blog so a local risk check runs automatically |
+| 3b. Batch | `hdcommunity_admin_blog_review_batch` | `ids:[]`, `action`; pass `items:[{id,title,content}]` for per-blog risk checks |
 | 4. Online / Top | `hdcommunity_admin_blog_online` / `hdcommunity_admin_blog_top` | approved only |
 | 5. Comments | `hdcommunity_admin_comment_page` → `..._comment_review(_batch)` | status: 1待审/2通过/3驳回 |
 | 6. Stats | `hdcommunity_admin_stats` | workbench counters |
 | 7. Records | `hdcommunity_admin_blog_records` | audit trail per blog |
 | 8. Logout | `hdcommunity_admin_logout` | revokes token |
+
+## Content Risk Control (mark-only)
+
+Every review response carries a `risk_check` report (`risk_level`, `categories`, `hits`, `suggestion`) computed locally against a word list — no paid service, no backend call.
+
+- **Automatic**: pass the blog's `title`/`content` (or `items:[{id,title,content}]` for batch) to the review tool and the check runs before the review is submitted.
+- **Standalone**: `hdcommunity_admin_blog_risk_check` accepts `{title, content}` alone.
+- **Mark-only**: findings NEVER block approval — present `risk_level` + `hits` to the admin, who makes the final call. For `high`/`medium` findings, surface them prominently and recommend human re-review or rejection.
+- If `risk_check.status` is `skipped`, the text was not provided; fetch it and re-check, or review manually.
+- Word list: built-in seed + optional extension file (`HDCOMMUNITY_RISK_WORDS_FILE` or `~/.config/hdcommunity-toolkit/risk-words.json`) — plug a maintained open-source word bank there for production coverage. Image risk control is planned for a later phase.
 
 ## Rules
 
