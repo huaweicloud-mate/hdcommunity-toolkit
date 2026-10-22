@@ -25,11 +25,15 @@ export const BLOG_TOOLS = {
     },
     {
       name: 'hdcommunity_blog_detail',
-      description: 'Get a blog detail by ref. 看博客详情。',
+      description: 'Get a blog detail by ref (include_content=false summarizes content to content_preview + content_length). 看博客详情。',
       inputSchema: {
         type: 'object',
         required: ['ref'],
-        properties: { ref: P.str('博客 ref，如 blog-123'), log_view: { type: 'boolean', description: '是否记浏览量，默认 false' } },
+        properties: {
+          ref: P.str('博客 ref，如 blog-123'),
+          log_view: { type: 'boolean', description: '是否记浏览量，默认 false' },
+          include_content: { type: 'boolean', description: '是否包含正文，默认 true；false 时仅返回摘要' },
+        },
       },
     },
     {
@@ -199,8 +203,20 @@ export const BLOG_TOOLS = {
       callBlog('GET', '/agent/blog/list', {
         query: { type: a.type, page_no: a.page_no, page_size: a.page_size, key_word: a.key_word },
       }),
-    'hdcommunity_blog_detail': (a) =>
-      callBlog('GET', '/agent/blog/detail', { query: { ref: a.ref, log_view: a.log_view } }),
+    'hdcommunity_blog_detail': async (a) => {
+      const r = await callBlog('GET', '/agent/blog/detail', { query: { ref: a.ref, log_view: a.log_view } });
+      if (!r.ok || a.include_content !== false) return r;
+      const d = r.data;
+      const list = Array.isArray(d?.list) ? d.list : Array.isArray(d) ? d : d ? [d] : [];
+      for (const item of list) {
+        if (item && typeof item.content === 'string') {
+          item.content_length = item.content.length;
+          item.content_preview = item.content.slice(0, 200);
+          delete item.content;
+        }
+      }
+      return r;
+    },
     'hdcommunity_blog_create': (a) =>
       callBlog('POST', '/agent/blog/save', {
         body: { title: a.title, content: a.content, intro: a.intro, cover_url: a.cover_url },
