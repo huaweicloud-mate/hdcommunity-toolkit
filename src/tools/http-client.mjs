@@ -10,9 +10,9 @@
 
 import { request } from 'undici';
 import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
-import { loadCredentials, hasCredentials } from '../credentials.mjs';
+import { loadCredentials, hasCredentials, loadAdminCredentials, hasAdminCredentials } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
-import { getSessionToken } from '../session.mjs';
+import { getSessionToken, setSessionToken, clearSessionToken } from '../session.mjs';
 
 function buildUrl(path, query) {
   const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
@@ -93,17 +93,61 @@ export async function callShow(method, path, { query, body } = {}) {
   return unwrap(await doRequest(path, { method, query, body }));
 }
 
+const NEED_LOGIN_HINT =
+  '管理面登录态失效且无法自动重登：请配置 HDCOMMUNITY_ADMIN_USER / HDCOMMUNITY_ADMIN_PASS 环境变量' +
+  '（或在 ~/.config/huaweicloud/credentials.json 写入 admin_user/admin_pass），或调用 hdcommunity_admin_login';
+
+/**
+ * Attempt an automatic relogin with configured admin credentials (B1).
+ * @returns {Promise<null|{ok:false}>} null = relogin succeeded (new token cached); otherwise a NEED_LOGIN failure.
+ */
+async function autoRelogin(sessionId) {
+  const creds = loadAdminCredentials();
+  if (!hasAdminCredentials(creds)) {
+    return fail(CODES.NEED_LOGIN, NEED_LOGIN_HINT);
+  }
+  clearSessionToken(sessionId);
+  const r = await loginAdmin(creds.adminUser, creds.adminPass);
+  if (!r.ok) {
+    return fail(CODES.NEED_LOGIN, `401 自动重登失败（${r.error?.message || r.error?.code}）：请核对 HDCOMMUNITY_ADMIN_USER/PASS 配置，或调用 hdcommunity_admin_login`);
+  }
+  const d = r.data || {};
+  const user = d.user || {};
+  setSessionToken(sessionId, { token: d.token, username: user.username, role: user.role });
+  return null;
+}
+
+async function adminRequest(token, method, path, { query, body } = {}) {
+  return unwrap(await doRequest(path, { method, query, body, headers: { Authorization: `Bearer ${token}` } }));
+}
+
 /**
  * Admin call — Bearer token from explicit arg or session cache.
+ * B1: on 401/UNAUTHORIZED (and when no explicit token was passed), automatically relogin once
+ * with configured admin credentials and retry the request; only report NEED_LOGIN when that fails.
  * @param {string} sessionId
  * @param {string} method
  * @param {string} path
  * @param {{query?: object, body?: object, token?: string}} [opts]
  */
 export async function callAdmin(sessionId, method, path, { query, body, token } = {}) {
-  const t = token || getSessionToken(sessionId);
-  if (!t) return fail(CODES.UNAUTHORIZED, '管理面未登录：请先调用 hdcommunity_admin_login');
-  return unwrap(await doRequest(path, { method, query, body, headers: { Authorization: `Bearer ${t}` } }));
+  if (token) return adminRequest(token, method, path, { query, body });
+
+  let t = getSessionToken(sessionId);
+  if (!t) {
+    const reloginFailure = await autoRelogin(sessionId);
+    if (reloginFailure) return reloginFailure;
+    t = getSessionToken(sessionId);
+  }
+
+  let result = await adminRequest(t, method, path, { query, body });
+  if (!result.ok && result.error?.code === CODES.UNAUTHORIZED) {
+    const reloginFailure = await autoRelogin(sessionId);
+    if (reloginFailure) return reloginFailure;
+    const fresh = getSessionToken(sessionId);
+    result = await adminRequest(fresh, method, path, { query, body });
+  }
+  return result;
 }
 
 /** Admin login — real /manage/auth/login, no bearer required. */
