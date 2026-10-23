@@ -28,8 +28,9 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 35 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
-点赞/收藏/关注、上传图片；管理面登录并审核博客与评论、上下线、置顶、审核记录、工作台统计；
+安装完成后我应能用这些能力（共 36 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+点赞/收藏/关注、上传图片；管理面登录并审核博客与评论（审核前自动本地内容风控，标记风险不阻断）、
+上下线、置顶、审核记录、工作台统计、内容风控检查；
 对外公开只读的博客列表/详情。另含 4 个 Skill：hd-blog-author / hd-blog-operator /
 hd-blog-promote / hd-experience。
 ```
@@ -138,7 +139,7 @@ npx hdcommunity-toolkit help
 
 ---
 
-## 工具清单（共 35 个）
+## 工具清单（共 36 个）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -165,15 +166,15 @@ npx hdcommunity-toolkit help
 | `hdcommunity_user_stat` | 我的统计（博客数/阅读/点赞） |
 | `hdcommunity_file_upload` | 上传图片（封面/正文用，base64） |
 
-### 管理面（13）— 需内部登录
+### 管理面（14）— 需内部登录（风控工具除外）
 
 | 工具 | 作用 |
 |---|---|
 | `hdcommunity_admin_login` | 管理面登录（内部账号密码）→ token |
 | `hdcommunity_admin_logout` | 注销（吊销 token） |
 | `hdcommunity_admin_blog_page` | 博客分页（按状态/上线/关键词筛选） |
-| `hdcommunity_admin_blog_review` | 单条审核（`approve` / `reject` + 意见） |
-| `hdcommunity_admin_blog_review_batch` | 批量审核 |
+| `hdcommunity_admin_blog_review` | 单条审核（`approve` / `reject` + 意见；传 `title`/`content` 自动风控） |
+| `hdcommunity_admin_blog_review_batch` | 批量审核（传 `items:[{id,title,content}]` 逐条自动风控） |
 | `hdcommunity_admin_blog_online` | 博客上线 / 下线 |
 | `hdcommunity_admin_blog_top` | 博客置顶 / 取消 |
 | `hdcommunity_admin_blog_records` | 博客审核记录 |
@@ -182,6 +183,7 @@ npx hdcommunity-toolkit help
 | `hdcommunity_admin_comment_review_batch` | 评论批量审核 |
 | `hdcommunity_admin_comment_online` | 评论上线 / 下线 |
 | `hdcommunity_admin_stats` | 工作台统计（待审/通过/驳回/上线/置顶） |
+| `hdcommunity_admin_blog_risk_check` | 内容风控检查（本地词库，标记风险不阻断，无需登录） |
 
 ### 数据展示面（2）— 无需登录
 
@@ -213,9 +215,16 @@ npx hdcommunity-toolkit help
 
 1. 登录：`hdcommunity_admin_login { username, password }` → token 会话缓存。
 2. 取待审：`hdcommunity_admin_blog_page { status: 1, page_no: 1, page_size: 10 }`。
-3. 审核：
-   - 单条：`hdcommunity_admin_blog_review { id, action: "approve" | "reject", remark? }`
-   - 批量：`hdcommunity_admin_blog_review_batch { ids: [...], action, remark? }`
+3. 审核（**审核前自动本地内容风控，标记风险不阻断**）：
+   - 单条：`hdcommunity_admin_blog_review { id, action: "approve" | "reject", remark?, title?, content? }`
+     — 传入待审博客的 `title`/`content`（来自上一步分页/详情），响应附带 `risk_check`
+     （`risk_level` / `categories` / `hits` / `suggestion`），供管理员决策参考。
+   - 批量：`hdcommunity_admin_blog_review_batch { ids: [...], action, remark?, items?: [{id,title,content}] }`
+     — 响应附带逐条 `risk_check.items` 与 `overall_risk_level` 汇总。
+   - 独立检查：`hdcommunity_admin_blog_risk_check { title?, content? }`（本地纯计算，无需登录）。
+   - 风控词库：内置种子词库 + 可扩展文件 `~/.config/hdcommunity-toolkit/risk-words.json`
+     （或环境变量 `HDCOMMUNITY_RISK_WORDS_FILE`，支持 `"词"` 或 `{"word","category","level"}` 条目，
+     可接入社区开源词库数据；免费方案，无云端依赖）。图片风控为二期规划。
 4. 上线 / 置顶：
    - `hdcommunity_admin_blog_online { id, online: 1 }`（仅已通过可上下线）
    - `hdcommunity_admin_blog_top { id, top: 1 }`（仅已通过且已上线可置顶）
