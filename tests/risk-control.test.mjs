@@ -144,11 +144,11 @@ test('standalone tool rejects empty input', async () => {
 
 test('review tool merges risk_check even when the backend call fails (mark-only, never blocks)', async () => {
   useNoWordFile();
-  // No admin session -> callAdmin returns UNAUTHORIZED without touching the network;
-  // the risk check must still be attached to the result.
+  // No admin session and no relogin creds -> callAdmin returns NEED_LOGIN after the
+  // failed 401 auto-relogin (Issue #4 B1 semantics); the risk check must still be attached.
   const r = await callTool('hdcommunity_admin_blog_review', { id: 1, action: 'approve', title: '赌博' });
   assert.equal(r.ok, false);
-  assert.equal(r.error.code, 'UNAUTHORIZED');
+  assert.equal(r.error.code, 'NEED_LOGIN');
   assert.equal(r.risk_check.risk_level, 'high');
 });
 
