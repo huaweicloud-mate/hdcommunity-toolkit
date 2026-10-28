@@ -28,11 +28,12 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 37 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+安装完成后我应能用这些能力（共 46 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
 点赞/收藏/关注、上传图片；管理面登录并审核博客与评论（审核前自动本地内容风控，标记风险不阻断；401 自动重登；批量条件过滤 + dry_run 预览 + 按 id 回执）、
 上下线、置顶、审核记录、工作台统计、内容风控检查；
-对外公开只读的博客列表/详情。另含 4 个 Skill：hd-blog-author / hd-blog-operator /
-hd-blog-promote / hd-experience。
+对外公开只读的博客列表/详情。**成长中心（HDGrowService）**：公开只读的任务/分类/权益列表、
+业务侧发积分/查积分/发券/兑换（涉钱写操作默认预演 + 确认令牌 + 高风险阈值）。
+另含 5 个 Skill：hd-blog-author / hd-blog-operator / hd-blog-promote / hd-experience / hd-grow-operator。
 ```
 
 > **极简版（一行提示词）**：
@@ -138,12 +139,17 @@ npx hdcommunity-toolkit help
 | `HDCOMMUNITY_ADMIN_BLOG_DETAIL_PATH` | `/manage/blog/{id}/detail` | 管理面博客详情路径（后端 A3 契约，`{id}` 占位） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDCOMMUNITY_TIMEOUT_MS` | `30000` | 请求超时（毫秒） |
+| `HDGROW_BASE` | `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长中心服务地址（公开面 `/servlet/**` + 业务侧面 `/server/**`） |
+| `HDGROW_APPCODE` | 空 | 成长中心业务侧面 appcode（`X-Apig-AppCode`）；缺省回退 credentials.json 的 `grow_appcode` |
+| `HDGROW_RISK_FACE_AMOUNT_MAX` | `100` | 发券单张面额高风险阈值（元），超阈值需 `confirm_high_risk` + `reason` |
+| `HDGROW_RISK_QUANTITY_MAX` | `10` | 兑换单次券数量高风险阈值 |
 
-> 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` 指向你的环境。
+> 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` / `HDGROW_BASE` 指向你的环境。
+> 成长中心业务侧面需额外配置 `HDGROW_APPCODE`（APIG 网关发放，并经服务端白名单校验）。
 
 ---
 
-## 工具清单（共 37 个）
+## 工具清单（共 46 个）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -258,6 +264,37 @@ npx hdcommunity-toolkit help
 
 ---
 
+## 成长中心（HDGrowService，共 9 个）
+
+与博客平行的一段能力，对接华为云开发者成长体系（`/api/v1/hdgrowservice`）。
+
+### 公开只读（3）— 无需鉴权
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_task_list` | 成长中心任务列表（`GET /servlet/tasks`） |
+| `hdgrow_task_categories` | 任务分类列表（`GET /servlet/task/categories`） |
+| `hdgrow_prize_list` | 权益(代金券)列表（`GET /servlet/prizes`） |
+
+### 业务侧服务间（6）— 需 `HDGROW_APPCODE`
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_points_query` | 查询用户积分（`/server/points/query`） |
+| `hdgrow_server_tasks` | 服务间任务列表（`/server/tasks`） |
+| `hdgrow_server_prizes` | 服务间权益列表（`/server/prizes`） |
+| `hdgrow_points_add` | **发放积分（写）** `/server/points/add` |
+| `hdgrow_prize_exchange` | **兑换代金券（写）** `/server/prize/exchange` |
+| `hdgrow_issue_coupon` | **发代金券（写）** `/server/issue-coupon` |
+
+> **涉钱写操作安全防护**（`points_add` / `prize_exchange` / `issue_coupon`）：
+> 1. 默认 `dry_run=true` **只预演不落库**，返回参数、金额、风险等级与 `confirm_token`；
+> 2. 执行须传 `dry_run=false` + `confirm_token`（一次性、HMAC、TTL 5 分钟，**绑定请求体**，参数被改动即拒绝）；
+> 3. 超阈值（`face_amount>100` 元 / `quantity>10`）须 `confirm_high_risk=true` + 非空 `reason`；
+> 4. `issue_coupon`/`prize_exchange` 强制 `biz_id` 幂等；插件层**不自动重试**。
+>
+> > 运营「配置」侧（任务发放积分、券数量/面额等**设置项**）属管理台能力，不在本段工具内（见 `PLAN_manage_console.md`）。
+
+---
+
 ## 内置 Skill
 
 | Skill | 用途 |
@@ -266,6 +303,7 @@ npx hdcommunity-toolkit help
 | `hd-blog-operator` | 运营「待审清理 / 内容巡检」 |
 | `hd-blog-promote` | 博客 → 各平台推广文案 |
 | `hd-experience` | 体验案例上报（skill 直调体验官服务接口） |
+| `hd-grow-operator` | 成长中心运营/查询（看任务/权益、查积分、发积分/发券，涉钱写操作强制预演） |
 
 ---
 

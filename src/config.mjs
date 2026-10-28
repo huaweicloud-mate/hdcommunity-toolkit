@@ -15,3 +15,16 @@ export const ADMIN_BLOG_DETAIL_PATH = process.env.HDCOMMUNITY_ADMIN_BLOG_DETAIL_
 export const REGION = process.env.HW_REGION || 'cn-north-4';
 
 export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 30000);
+
+// ---------------------------------------------------------------------------
+// Growth center (HDGrowService) — parallel capability to the community/blog side.
+//
+//   /servlet/**  public read-only  (no auth)          -> callGrowShow
+//   /server/**   service-to-service (X-Apig-AppCode)  -> callGrowServer
+//
+// Base uses the service context-path /api/v1/hdgrowservice. Default = test gateway;
+// switch to prod via HDGROW_BASE.
+// ---------------------------------------------------------------------------
+
+export const HDGROW_BASE =
+  process.env.HDGROW_BASE || 'https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice';

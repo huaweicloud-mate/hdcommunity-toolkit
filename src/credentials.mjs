@@ -91,6 +91,20 @@ export function hasAdminCredentials(creds) {
   return Boolean(creds?.adminUser && creds?.adminPass);
 }
 
+/**
+ * Resolve the growth-center service-to-service appcode (X-Apig-AppCode) for /server/**.
+ * Priority: env HDGROW_APPCODE > credentials.json grow_appcode.
+ * @returns {string}
+ */
+export function loadGrowAppCode() {
+  let appcode = process.env.HDGROW_APPCODE || process.env.HD_GROW_APPCODE || '';
+  if (!appcode) {
+    const vault = readJson(join(homedir(), '.config', 'huaweicloud', 'credentials.json'));
+    if (vault) appcode = vault.grow_appcode || vault.growAppCode || '';
+  }
+  return appcode || '';
+}
+
 /** Mask an AK for logs. */
 export function maskAk(ak) {
   if (!ak || typeof ak !== 'string') return '';

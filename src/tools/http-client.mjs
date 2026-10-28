@@ -9,8 +9,14 @@
 // into the toolkit result shape (see errors.mjs).
 
 import { request } from 'undici';
-import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
-import { loadCredentials, hasCredentials, loadAdminCredentials, hasAdminCredentials } from '../credentials.mjs';
+import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS, HDGROW_BASE } from '../config.mjs';
+import {
+  loadCredentials,
+  hasCredentials,
+  loadAdminCredentials,
+  hasAdminCredentials,
+  loadGrowAppCode,
+} from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 import { getSessionToken, setSessionToken, clearSessionToken } from '../session.mjs';
 
@@ -160,4 +166,64 @@ export async function logoutAdmin(sessionId, token) {
   const t = token || getSessionToken(sessionId);
   if (!t) return ok(null);
   return unwrap(await doRequest(ADMIN_LOGOUT_PATH, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
+}
+
+// ---------------------------------------------------------------------------
+// Growth center (HDGrowService) — separate base (context-path /api/v1/hdgrowservice).
+//
+//   callGrowShow   -> /servlet/**  public read-only, no auth
+//   callGrowServer -> /server/**   service-to-service, injects X-Apig-AppCode
+// ---------------------------------------------------------------------------
+
+function buildGrowUrl(path, query) {
+  const url = new URL(HDGROW_BASE.replace(/\/$/, '') + path);
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined || v === null || v === '') continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+  return url;
+}
+
+async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}) {
+  const url = buildGrowUrl(path, query);
+  let res;
+  try {
+    res = await request(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      bodyTimeout: DEFAULT_TIMEOUT_MS,
+      headersTimeout: DEFAULT_TIMEOUT_MS,
+    });
+  } catch (e) {
+    return { transportError: e.message };
+  }
+  const text = await res.body.text();
+  let json = null;
+  if (text) {
+    try {
+      json = JSON.parse(text);
+    } catch {
+      /* non-JSON body */
+    }
+  }
+  return { status: res.statusCode, json, text };
+}
+
+/** Growth public read-only call — no auth. */
+export async function callGrowShow(method, path, { query, body } = {}) {
+  return unwrap(await doGrowRequest(path, { method, query, body }));
+}
+
+const GROW_APPCODE_HINT =
+  '未配置成长服务 appcode：请设置环境变量 HDGROW_APPCODE（或在 ~/.config/huaweicloud/credentials.json 写入 grow_appcode）。' +
+  'appcode 由 APIG 网关发放，并经服务端 hd_grow_api_whitelist 白名单校验。';
+
+/** Growth service-to-service call — injects X-Apig-AppCode per request. */
+export async function callGrowServer(method, path, { query, body } = {}) {
+  const appcode = loadGrowAppCode();
+  if (!appcode) return fail(CODES.AUTH_MISSING, GROW_APPCODE_HINT);
+  return unwrap(await doGrowRequest(path, { method, query, body, headers: { 'X-Apig-AppCode': appcode } }));
 }
