@@ -1,6 +1,6 @@
 ---
 name: hd-grow-operator
-description: 'Use when an operator wants to inspect or operate the Huawei Cloud developer growth center (HDGrowService) through the toolkit: view tasks/prizes, query a user''s points, issue points, or issue/exchange coupons. Triggers: 成长中心, 成长体系, 发积分, 发券, 代金券, 查积分, 任务列表, 权益列表, growth center, issue points, issue coupon.' 
+description: 'Use when an operator wants to inspect or operate the Huawei Cloud developer growth center (HDGrowService) through the toolkit: view tasks/prizes, query a user''s points, issue points, or issue/exchange coupons. Triggers: 成长中心, 成长体系, 发积分, 发券, 代金券, 查积分, 任务列表, 权益列表, growth center, issue points, issue coupon.'
 version: 1
 ---
 
