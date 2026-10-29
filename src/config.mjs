@@ -19,8 +19,9 @@ export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 3
 // ---------------------------------------------------------------------------
 // Growth center (HDGrowService) — parallel capability to the community/blog side.
 //
-//   /servlet/**  public read-only  (no auth)          -> callGrowShow
-//   /server/**   service-to-service (X-Apig-AppCode)  -> callGrowServer
+//   /agent/show/grow/**  public read-only (no auth)     -> callGrowShow
+//   /agent/grow/**       business (AK/SK, per request)   -> callGrow
+//   /agent/admin/grow/** management (Bearer)             -> callGrowAdmin
 //
 // Base uses the service context-path /api/v1/hdgrowservice. Default = test gateway;
 // switch to prod via HDGROW_BASE.

@@ -140,13 +140,12 @@ npx hdcommunity-toolkit help
 | `HDCOMMUNITY_ADMIN_BLOG_DETAIL_PATH` | `/manage/blog/{id}/detail` | 管理面博客详情路径（后端 A3 契约，`{id}` 占位） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDCOMMUNITY_TIMEOUT_MS` | `30000` | 请求超时（毫秒） |
-| `HDGROW_BASE` | `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长中心服务地址（公开面 `/servlet/**` + 业务侧面 `/server/**`） |
-| `HDGROW_APPCODE` | 空 | 成长中心业务侧面 appcode（`X-Apig-AppCode`）；缺省回退 credentials.json 的 `grow_appcode` |
+| `HDGROW_BASE` | `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长中心服务地址（展示 `/agent/show/grow/**` + 业务 `/agent/grow/**` + 管理台 `/agent/admin/grow/**`） |
 | `HDGROW_RISK_FACE_AMOUNT_MAX` | `100` | 发券单张面额高风险阈值（元），超阈值需 `confirm_high_risk` + `reason` |
 | `HDGROW_RISK_QUANTITY_MAX` | `10` | 兑换单次券数量高风险阈值 |
 
 > 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` / `HDGROW_BASE` 指向你的环境。
-> 成长中心业务侧面需额外配置 `HDGROW_APPCODE`（APIG 网关发放，并经服务端白名单校验）。
+> 成长中心沿用博客分层：业务侧 `/agent/grow/**` 用 **AK/SK**（与博客一致）；管理台 `/agent/admin/grow/**` 用内部账号 **Bearer**（登录 `/manage/auth/login`）；展示面 `/agent/show/grow/**` 无鉴权。
 
 ---
 
@@ -272,19 +271,19 @@ npx hdcommunity-toolkit help
 ### 公开只读（3）— 无需鉴权
 | 工具 | 作用 |
 |---|---|
-| `hdgrow_task_list` | 成长中心任务列表（`GET /servlet/tasks`） |
-| `hdgrow_task_categories` | 任务分类列表（`GET /servlet/task/categories`） |
-| `hdgrow_prize_list` | 权益(代金券)列表（`GET /servlet/prizes`） |
+| `hdgrow_task_list` | 成长中心任务列表（`GET /agent/show/grow/task/list`） |
+| `hdgrow_task_categories` | 任务分类列表（`GET /agent/show/grow/task/categories`） |
+| `hdgrow_prize_list` | 权益(代金券)列表（`GET /agent/show/grow/prize/list`） |
 
-### 业务侧服务间（6）— 需 `HDGROW_APPCODE`
+### 业务侧（6）— 需 AK/SK（`/agent/grow/**`）
 | 工具 | 作用 |
 |---|---|
-| `hdgrow_points_query` | 查询用户积分（`/server/points/query`） |
-| `hdgrow_server_tasks` | 服务间任务列表（`/server/tasks`） |
-| `hdgrow_server_prizes` | 服务间权益列表（`/server/prizes`） |
-| `hdgrow_points_add` | **发放积分（写）** `/server/points/add` |
-| `hdgrow_prize_exchange` | **兑换代金券（写）** `/server/prize/exchange` |
-| `hdgrow_issue_coupon` | **发代金券（写）** `/server/issue-coupon` |
+| `hdgrow_points_query` | 查询用户积分（`/agent/grow/points/query`） |
+| `hdgrow_server_tasks` | 业务侧任务列表（`/agent/grow/task/list`） |
+| `hdgrow_server_prizes` | 业务侧权益列表（`/agent/grow/prize/list`） |
+| `hdgrow_points_add` | **发放积分（写）** `/agent/grow/points/add` |
+| `hdgrow_prize_exchange` | **兑换代金券（写）** `/agent/grow/prize/exchange` |
+| `hdgrow_issue_coupon` | **发代金券（写）** `/agent/grow/issue-coupon` |
 
 > **涉钱写操作安全防护**（`points_add` / `prize_exchange` / `issue_coupon`）：
 > 1. 默认 `dry_run=true` **只预演不落库**，返回参数、金额、风险等级与 `confirm_token`；
@@ -298,7 +297,7 @@ npx hdcommunity-toolkit help
 
 ## 成长中心管理台（HDGrowService，共 20 个）
 
-对接 `hdgrowservice` 的 `/manage/**`。**内部账号登录**（Bearer token，非 AK/SK）。
+对接 `hdgrowservice` 的 `/agent/admin/grow/**`（登录/注销仍走真实路径 `/manage/auth/*`）。**内部账号登录**（Bearer token，非 AK/SK）。
 
 ### 认证（2）
 `hdgrow_admin_login`（内部账号，角色 operator/approver/admin）· `hdgrow_admin_logout`

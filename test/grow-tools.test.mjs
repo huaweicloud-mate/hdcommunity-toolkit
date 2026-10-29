@@ -33,7 +33,7 @@ test('guard: issue_coupon dry_run defaults to a preview (no write)', async () =>
   assert.equal(r.data.preview, true);
   assert.ok(r.data.confirm_token);
   assert.equal(r.data.risk_level, 'MID');
-  assert.equal(r.data.endpoint, '/server/issue-coupon');
+  assert.equal(r.data.endpoint, '/agent/grow/issue-coupon');
 });
 
 test('guard: issue_coupon over face_amount threshold is HIGH + flagged', async () => {

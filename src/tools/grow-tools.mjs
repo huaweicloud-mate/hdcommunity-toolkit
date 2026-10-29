@@ -1,8 +1,8 @@
 // Growth-center tools (hdgrow_*) — parallel capability to the community/blog side.
 //
 // Scope (Phase 0):
-//   A. public read-only  /servlet/**  (no auth)          -> hdgrow_task_list / task_categories / prize_list
-//   B. service-to-service /server/**  (X-Apig-AppCode)   -> *_query / *_tasks / *_prizes (read)
+//   A. public read-only  /agent/show/grow/**  (no auth)  -> task_list / task_categories / prize_list
+//   B. business          /agent/grow/**       (AK/SK)    -> points/prize/task reads + money writes
 //                                                           points_add / prize_exchange / issue_coupon (write)
 //
 // Money-sensitive writes are guarded by a 4-step chain:
@@ -16,7 +16,7 @@
 // NOT exposed here (see PLAN_manage_console.md).
 
 import crypto from 'node:crypto';
-import { callGrowShow, callGrowServer } from './http-client.mjs';
+import { callGrowShow, callGrow } from './http-client.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 
 const P = {
@@ -266,7 +266,7 @@ export const GROW_TOOLS = {
   call: {
     // --- A. public read-only ---
     'hdgrow_task_list': (a) =>
-      callGrowShow('GET', '/servlet/tasks', {
+      callGrowShow('GET', '/agent/show/grow/task/list', {
         query: {
           category_key: a.category_key,
           biz_type: a.biz_type,
@@ -275,17 +275,17 @@ export const GROW_TOOLS = {
           page_size: a.page_size,
         },
       }),
-    'hdgrow_task_categories': () => callGrowShow('GET', '/servlet/task/categories'),
+    'hdgrow_task_categories': () => callGrowShow('GET', '/agent/show/grow/task/categories'),
     'hdgrow_prize_list': (a) =>
-      callGrowShow('GET', '/servlet/prizes', { query: { page_no: a.page_no, page_size: a.page_size } }),
+      callGrowShow('GET', '/agent/show/grow/prize/list', { query: { page_no: a.page_no, page_size: a.page_size } }),
 
     // --- B. service reads ---
     'hdgrow_points_query': (a) =>
-      callGrowServer('POST', '/server/points/query', {
+      callGrow('POST', '/agent/grow/points/query', {
         body: { domain_id: a.domain_id, user_type: a.user_type, iam_id: a.iam_id },
       }),
     'hdgrow_server_tasks': (a) =>
-      callGrowServer('POST', '/server/tasks', {
+      callGrow('POST', '/agent/grow/task/list', {
         body: {
           domain_id: a.domain_id,
           user_type: a.user_type,
@@ -298,7 +298,7 @@ export const GROW_TOOLS = {
         },
       }),
     'hdgrow_server_prizes': (a) =>
-      callGrowServer('POST', '/server/prizes', {
+      callGrow('POST', '/agent/grow/prize/list', {
         body: {
           domain_id: a.domain_id,
           user_type: a.user_type,
@@ -322,13 +322,13 @@ export const GROW_TOOLS = {
         {
           action: 'points_add',
           method: 'POST',
-          endpoint: '/server/points/add',
+          endpoint: '/agent/grow/points/add',
           body,
           money: { note: '积分值由后端按 task_id 查询 hd_grow_task.points 决定，调用方不可传入', task_id: a.task_id },
           hits: [],
         },
         a,
-        () => callGrowServer('POST', '/server/points/add', { body }),
+        () => callGrow('POST', '/agent/grow/points/add', { body }),
       );
     },
 
@@ -350,13 +350,13 @@ export const GROW_TOOLS = {
         {
           action: 'prize_exchange',
           method: 'POST',
-          endpoint: '/server/prize/exchange',
+          endpoint: '/agent/grow/prize/exchange',
           body,
           money: { quantity, note: '实际发券总额 = 单张面额 × quantity，由后端 prize 数据决定；扣积分 = points_price × quantity' },
           hits,
         },
         a,
-        () => callGrowServer('POST', '/server/prize/exchange', { body }),
+        () => callGrow('POST', '/agent/grow/prize/exchange', { body }),
       );
     },
 
@@ -377,13 +377,13 @@ export const GROW_TOOLS = {
         {
           action: 'issue_coupon',
           method: 'POST',
-          endpoint: '/server/issue-coupon',
+          endpoint: '/agent/grow/issue-coupon',
           body,
           money: { face_amount: a.face_amount, currency_code: currency, total_face: a.face_amount },
           hits,
         },
         a,
-        () => callGrowServer('POST', '/server/issue-coupon', { body }),
+        () => callGrow('POST', '/agent/grow/issue-coupon', { body }),
       );
     },
   },

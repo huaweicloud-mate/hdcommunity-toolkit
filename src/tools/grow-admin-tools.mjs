@@ -276,34 +276,34 @@ export const GROW_ADMIN_TOOLS = {
     },
 
     'hdgrow_admin_change_create': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'POST', '/manage/change-request', {
+      callGrowAdmin(ctx?.sessionId, 'POST', '/agent/admin/grow/change-request', {
         body: { target_type: a.target_type, target_id: a.target_id, field_group: a.field_group, after: a.after, reason: a.reason },
         token: a.token,
       }),
     'hdgrow_admin_change_commit': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'POST', `/manage/change-request/${encodeURIComponent(a.id)}/commit`, {
+      callGrowAdmin(ctx?.sessionId, 'POST', `/agent/admin/grow/change-request/${encodeURIComponent(a.id)}/commit`, {
         body: { confirm_token: a.confirm_token, reason: a.reason },
         token: a.token,
       }),
     'hdgrow_admin_change_approve': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'POST', `/manage/change-request/${encodeURIComponent(a.id)}/approve`, {
+      callGrowAdmin(ctx?.sessionId, 'POST', `/agent/admin/grow/change-request/${encodeURIComponent(a.id)}/approve`, {
         body: { decision: a.decision, comment: a.comment },
         token: a.token,
       }),
     'hdgrow_admin_change_apply': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'POST', `/manage/change-request/${encodeURIComponent(a.id)}/apply`, { token: a.token }),
+      callGrowAdmin(ctx?.sessionId, 'POST', `/agent/admin/grow/change-request/${encodeURIComponent(a.id)}/apply`, { token: a.token }),
     'hdgrow_admin_change_revert': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'POST', `/manage/change-request/${encodeURIComponent(a.id)}/revert`, { token: a.token }),
+      callGrowAdmin(ctx?.sessionId, 'POST', `/agent/admin/grow/change-request/${encodeURIComponent(a.id)}/revert`, { token: a.token }),
     'hdgrow_admin_change_get': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', `/manage/change-request/${encodeURIComponent(a.id)}`, { token: a.token }),
+      callGrowAdmin(ctx?.sessionId, 'GET', `/agent/admin/grow/change-request/${encodeURIComponent(a.id)}`, { token: a.token }),
     'hdgrow_admin_change_page': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/change-request/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/change-request/page', {
         query: { status: a.status, submitter: a.submitter, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
 
     'hdgrow_admin_task_page': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/task/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/task/page', {
         query: {
           category_id: a.category_id,
           enabled: a.enabled,
@@ -316,16 +316,16 @@ export const GROW_ADMIN_TOOLS = {
         token: a.token,
       }),
     'hdgrow_admin_task_get': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', `/manage/task/${encodeURIComponent(a.id)}`, { token: a.token }),
+      callGrowAdmin(ctx?.sessionId, 'GET', `/agent/admin/grow/task/${encodeURIComponent(a.id)}`, { token: a.token }),
     'hdgrow_admin_prize_page': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/prize/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/prize/page', {
         query: { on_shelf: a.on_shelf, deleted: a.deleted, keyword: a.keyword, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
     'hdgrow_admin_prize_get': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', `/manage/prize/${encodeURIComponent(a.id)}`, { token: a.token }),
+      callGrowAdmin(ctx?.sessionId, 'GET', `/agent/admin/grow/prize/${encodeURIComponent(a.id)}`, { token: a.token }),
     'hdgrow_admin_whitelist_page': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/whitelist/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/whitelist/page', {
         query: {
           service_name: a.service_name,
           auth_type: a.auth_type,
@@ -337,27 +337,27 @@ export const GROW_ADMIN_TOOLS = {
       }),
 
     'hdgrow_admin_record_points': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/points/detail/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/points/detail/page', {
         query: { user_id: a.user_id, type: a.type, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
     'hdgrow_admin_record_exchange': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/exchange/record/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/exchange/record/page', {
         query: { user_id: a.user_id, prize_id: a.prize_id, status: a.status, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
     'hdgrow_admin_record_issue': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/issue/record/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/issue/record/page', {
         query: { domain_id: a.domain_id, status: a.status, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
     'hdgrow_admin_record_job': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/job/record/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/job/record/page', {
         query: { job_code: a.job_code, batch_no: a.batch_no, status: a.status, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
     'hdgrow_admin_user_page': (a, ctx) =>
-      callGrowAdmin(ctx?.sessionId, 'GET', '/manage/user/page', {
+      callGrowAdmin(ctx?.sessionId, 'GET', '/agent/admin/grow/user/page', {
         query: { domain_id: a.domain_id, iam_id: a.iam_id, domain_name: a.domain_name, page_no: a.page_no, page_size: a.page_size },
         token: a.token,
       }),
@@ -365,10 +365,10 @@ export const GROW_ADMIN_TOOLS = {
     'hdgrow_admin_stats': (a, ctx) => {
       const kind = String(a.kind || '');
       const pathMap = {
-        overview: '/manage/stats/overview',
-        stock: '/manage/stats/stock',
-        exchange_trend: '/manage/stats/exchange-trend',
-        task_distribution: '/manage/stats/task-distribution',
+        overview: '/agent/admin/grow/stats/overview',
+        stock: '/agent/admin/grow/stats/stock',
+        exchange_trend: '/agent/admin/grow/stats/exchange-trend',
+        task_distribution: '/agent/admin/grow/stats/task-distribution',
       };
       const path = pathMap[kind];
       if (!path) return fail(CODES.PARAM_ERROR, 'kind 须为 overview / stock / exchange_trend / task_distribution');

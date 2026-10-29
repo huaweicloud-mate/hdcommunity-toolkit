@@ -15,7 +15,6 @@ import {
   hasCredentials,
   loadAdminCredentials,
   hasAdminCredentials,
-  loadGrowAppCode,
 } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 import { getSessionToken, setSessionToken, clearSessionToken, getGrowToken } from '../session.mjs';
@@ -171,8 +170,8 @@ export async function logoutAdmin(sessionId, token) {
 // ---------------------------------------------------------------------------
 // Growth center (HDGrowService) — separate base (context-path /api/v1/hdgrowservice).
 //
-//   callGrowShow   -> /servlet/**  public read-only, no auth
-//   callGrowServer -> /server/**   service-to-service, injects X-Apig-AppCode
+//   callGrowShow -> /agent/show/grow/**  public read-only, no auth
+//   callGrow     -> /agent/grow/**       business, injects X-HW-AK/SK
 // ---------------------------------------------------------------------------
 
 function buildGrowUrl(path, query) {
@@ -217,15 +216,24 @@ export async function callGrowShow(method, path, { query, body } = {}) {
   return unwrap(await doGrowRequest(path, { method, query, body }));
 }
 
-const GROW_APPCODE_HINT =
-  '未配置成长服务 appcode：请设置环境变量 HDGROW_APPCODE（或在 ~/.config/huaweicloud/credentials.json 写入 grow_appcode）。' +
-  'appcode 由 APIG 网关发放，并经服务端 hd_grow_api_whitelist 白名单校验。';
+const GROW_AUTH_MISSING =
+  '未配置 AK/SK：请设置 HW_ACCESS_KEY/HW_SECRET_KEY（或 ~/.config/huaweicloud/credentials.json）';
 
-/** Growth service-to-service call — injects X-Apig-AppCode per request. */
-export async function callGrowServer(method, path, { query, body } = {}) {
-  const appcode = loadGrowAppCode();
-  if (!appcode) return fail(CODES.AUTH_MISSING, GROW_APPCODE_HINT);
-  return unwrap(await doGrowRequest(path, { method, query, body, headers: { 'X-Apig-AppCode': appcode } }));
+/**
+ * Growth business-side call (/agent/grow/**) — injects AK/SK headers per request,
+ * same as the community blog user face (callBlog).
+ */
+export async function callGrow(method, path, { query, body } = {}) {
+  const creds = loadCredentials();
+  if (!hasCredentials(creds)) return fail(CODES.AUTH_MISSING, GROW_AUTH_MISSING);
+  const headers = {
+    'X-HW-AK': creds.ak,
+    'X-HW-SK': creds.sk,
+    'X-HW-PROJECT-ID': creds.projectId || '',
+    'X-HW-REGION': creds.region || REGION,
+  };
+  if (creds.securityToken) headers['X-HW-Security-Token'] = creds.securityToken;
+  return unwrap(await doGrowRequest(path, { method, query, body, headers }));
 }
 
 // ---------------------------------------------------------------------------
