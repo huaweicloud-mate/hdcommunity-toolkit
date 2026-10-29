@@ -25,3 +25,27 @@ export function getSession(sessionId) {
 export function clearSessionToken(sessionId) {
   store.delete(sessionId);
 }
+
+// ---------------------------------------------------------------------------
+// Growth-center management console token cache (separate namespace to avoid
+// colliding with the community admin token when both are used in one session).
+// ---------------------------------------------------------------------------
+
+const growStore = new Map(); // sessionId -> { token, username, role, savedAt }
+
+export function setGrowToken(sessionId, { token, username, role }) {
+  if (!sessionId) return;
+  growStore.set(sessionId, { token, username: username || null, role: role || null, savedAt: Date.now() });
+}
+
+export function getGrowToken(sessionId) {
+  return growStore.get(sessionId)?.token || null;
+}
+
+export function getGrowSession(sessionId) {
+  return growStore.get(sessionId) || null;
+}
+
+export function clearGrowToken(sessionId) {
+  growStore.delete(sessionId);
+}

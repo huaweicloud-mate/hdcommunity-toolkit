@@ -5,9 +5,10 @@ import { ADMIN_TOOLS } from './admin-tools.mjs';
 import { SHOW_TOOLS } from './show-tools.mjs';
 import { RISK_TOOLS } from './risk-control.mjs';
 import { GROW_TOOLS } from './grow-tools.mjs';
+import { GROW_ADMIN_TOOLS } from './grow-admin-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
-const GROUPS = [BLOG_TOOLS, ADMIN_TOOLS, SHOW_TOOLS, RISK_TOOLS, GROW_TOOLS];
+const GROUPS = [BLOG_TOOLS, ADMIN_TOOLS, SHOW_TOOLS, RISK_TOOLS, GROW_TOOLS, GROW_ADMIN_TOOLS];
 
 export const TOOL_DEFINITIONS = GROUPS.flatMap((g) => g.definitions);
 

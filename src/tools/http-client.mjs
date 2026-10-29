@@ -19,6 +19,7 @@ import {
 } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 import { getSessionToken, setSessionToken, clearSessionToken } from '../session.mjs';
+import { getGrowToken } from '../session.mjs';
 
 function buildUrl(path, query) {
   const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
@@ -226,4 +227,40 @@ export async function callGrowServer(method, path, { query, body } = {}) {
   const appcode = loadGrowAppCode();
   if (!appcode) return fail(CODES.AUTH_MISSING, GROW_APPCODE_HINT);
   return unwrap(await doGrowRequest(path, { method, query, body, headers: { 'X-Apig-AppCode': appcode } }));
+}
+
+// ---------------------------------------------------------------------------
+// Growth management console (/manage/**) — internal account login → Bearer token.
+// Token cached per session in a dedicated namespace (getGrowToken).
+// ---------------------------------------------------------------------------
+
+const GROW_NEED_LOGIN =
+  '管理台未登录：请先调用 hdgrow_admin_login { username, password }（内部账号，角色 operator/approver/admin）';
+
+/** Growth management login — POST /manage/auth/login, no Bearer required. */
+export async function loginGrowAdmin(username, password) {
+  return unwrap(await doGrowRequest('/manage/auth/login', { method: 'POST', body: { username, password } }));
+}
+
+/** Growth management logout — revokes the token on the backend. */
+export async function logoutGrowAdmin(sessionId, token) {
+  const t = token || getGrowToken(sessionId);
+  if (!t) return ok(null);
+  return unwrap(await doGrowRequest('/manage/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
+}
+
+/**
+ * Growth management call — Bearer token from explicit arg or session cache.
+ * No auto-relogin (unlike the community admin side): call hdgrow_admin_login explicitly.
+ * @param {string} sessionId
+ */
+export async function callGrowAdmin(sessionId, method, path, { query, body, token } = {}) {
+  const t = token || getGrowToken(sessionId);
+  if (!t) return fail(CODES.NEED_LOGIN, GROW_NEED_LOGIN);
+  return unwrap(await doGrowRequest(path, {
+    method,
+    query,
+    body,
+    headers: { Authorization: `Bearer ${t}` },
+  }));
 }
