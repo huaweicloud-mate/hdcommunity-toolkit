@@ -2,10 +2,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { callTool, TOOL_DEFINITIONS } from '../src/tools/index.mjs';
-
-// Base is read lazily; set a value so token/auth paths (not base) are exercised.
+// 管理台工具组默认关闭 → 测试前显式开启（GROUPS 在 import 时求值，故用动态 import）。
+process.env.HDGROW_ADMIN_ENABLED = '1';
 process.env.HDGROW_BASE = process.env.HDGROW_BASE || 'https://grow.example/api/v1/hdgrowservice';
+
+const { callTool, TOOL_DEFINITIONS } = await import('../src/tools/index.mjs');
 
 const EXPECTED = [
   'hdgrow_admin_login',

@@ -176,7 +176,12 @@ export async function logoutAdmin(sessionId, token) {
 // ---------------------------------------------------------------------------
 
 function buildGrowUrl(path, query) {
-  const url = new URL(growBase().replace(/\/$/, '') + path);
+  const base = growBase();
+  if (!base) {
+    // 空 base 兜底（调用方已前置校验并返回 CONFIG_MISSING，这里再防一层）
+    throw new Error('HDGROW_BASE 未配置（空值）');
+  }
+  const url = new URL(base.replace(/\/$/, '') + path);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null || v === '') continue;

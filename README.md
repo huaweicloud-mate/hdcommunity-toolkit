@@ -28,7 +28,7 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 66 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+安装完成后我应能用这些能力（共 46 个 MCP 工具；另可开启 20 个管理台工具）：看/写/发/编辑/删除博客、草稿、评论、
 点赞/收藏/关注、上传图片；管理面登录并审核博客与评论（审核前自动本地内容风控，标记风险不阻断；401 自动重登；批量条件过滤 + dry_run 预览 + 按 id 回执）、
 上下线、置顶、审核记录、工作台统计、内容风控检查；
 对外公开只读的博客列表/详情。**成长中心（HDGrowService）**：公开只读的任务/分类/权益列表、
@@ -144,14 +144,14 @@ npx hdcommunity-toolkit help
 | `HDGROW_RISK_FACE_AMOUNT_MAX` | `100` | 发券单张面额高风险阈值（元），超阈值需 `confirm_high_risk` + `reason` |
 | `HDGROW_RISK_QUANTITY_MAX` | `10` | 兑换单次券数量高风险阈值 |
 | `HDGROW_TOKEN_TTL_MS` | `1800000` | 管理台登录令牌本地缓存 TTL（毫秒，默认 30min） |
-| `HDGROW_ADMIN_ENABLED` | `true` | 设为 `0` 关闭 `hdgrow_admin_*` 工具组（默认开启） |
+| `HDGROW_ADMIN_ENABLED` | `0` | 设为 `1` 开启 `hdgrow_admin_*` 工具组（20 个，含内部账号登录/审批/生效；**默认关闭**） |
 
 > 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` / `HDGROW_BASE` 指向你的环境。
 > 成长中心沿用博客分层：业务侧 `/agent/grow/**` 用 **AK/SK**（与博客一致）；管理台 `/agent/admin/grow/**` 用内部账号 **Bearer**（登录 `/manage/auth/login`）；展示面 `/agent/show/grow/**` 无鉴权。
 
 ---
 
-## 工具清单（共 66 个）
+## 工具清单（共 66 个；默认 46，管理台 20 需 `HDGROW_ADMIN_ENABLED=1` 开启）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -300,6 +300,8 @@ npx hdcommunity-toolkit help
 ## 成长中心管理台（HDGrowService，共 20 个）
 
 对接 `hdgrowservice` 的 `/agent/admin/grow/**`（登录/注销仍走真实路径 `/manage/auth/*`）。**内部账号登录**（Bearer token，非 AK/SK）。
+
+> **默认关闭**（含内部账号登录/审批/生效）：需设 `HDGROW_ADMIN_ENABLED=1` 才注册这 20 个工具。
 
 ### 认证（2）
 `hdgrow_admin_login`（内部账号，角色 operator/approver/admin）· `hdgrow_admin_logout`

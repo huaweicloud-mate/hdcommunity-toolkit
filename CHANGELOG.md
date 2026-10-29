@@ -12,6 +12,8 @@
 ### Changed
 - 版本 `0.1.2 → 0.2.0`；各 agent 插件清单补齐成长中心描述/关键词，`author.url` 统一为 `huaweicloud-mate`。
 - `.claude-plugin` capabilities：`["Read"] → ["Read","Write","Interactive"]`。
+- **统一管理面登录/登出**：一次 `admin_login`（博客或成长入口）用同一账号同时登录**博客 + 成长**两个管理台；一次 `admin_logout` 同时登出（`src/tools/admin-session.mjs`）。
+- 管理台工具组 `hdgrow_admin_*` **默认关闭**（含内部账号登录/审批/生效）；显式开启 `HDGROW_ADMIN_ENABLED=1`。
 
 ### Fixed
 - `HDGROW_BASE`：**移除默认值**（不再隐式指向测试网关），未配置返回 **`CONFIG_MISSING`**。
@@ -19,4 +21,5 @@
 - `growStore` 令牌缓存加 TTL（`HDGROW_TOKEN_TTL_MS`）；`confirm_token` 存储加过期清扫 + 上限（`HDGROW_CONFIRM_TOKEN_MAX`）。
 - 管理台工具组可关闭：`HDGROW_ADMIN_ENABLED=0`。
 - 文档/注释/代码路径与鉴权口径对齐；去除空白噪声、补齐文件尾换行。
-- 新增 `CONFIG_MISSING` 错误码。
+- 新增 `CONFIG_MISSING` 错误码（`HDGROW_BASE` 缺失）。
+- `buildGrowUrl` 增空 base 兜底（调用方已前置返回 `CONFIG_MISSING`，双层防护）。

@@ -8,10 +8,9 @@ import { GROW_TOOLS } from './grow-tools.mjs';
 import { GROW_ADMIN_TOOLS } from './grow-admin-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
-// Growth management-console tools:默认开启；设 HDGROW_ADMIN_ENABLED=0 关闭
-// （兼容旧名 HDGROW_DISABLE_ADMIN=1）。
-const growAdminEnabled =
-  process.env.HDGROW_ADMIN_ENABLED !== '0' && process.env.HDGROW_DISABLE_ADMIN !== '1';
+// 管理台工具组默认 **关闭**（含内部账号登录/审批/生效）；
+// 显式开启：设置 HDGROW_ADMIN_ENABLED=1。
+const growAdminEnabled = process.env.HDGROW_ADMIN_ENABLED === '1';
 const GROUPS = [
   BLOG_TOOLS,
   ADMIN_TOOLS,
