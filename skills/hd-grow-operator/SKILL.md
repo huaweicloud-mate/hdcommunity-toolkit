@@ -12,14 +12,14 @@ version: 1
 
 Operates the Huawei Cloud developer growth center (HDGrowService, base `/api/v1/hdgrowservice`). Two faces:
 
-- **公开只读**（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`
-- **业务侧服务间**（需 `HDGROW_APPCODE`）：`hdgrow_points_query` / `hdgrow_server_tasks` / `hdgrow_server_prizes` / `hdgrow_points_add` / `hdgrow_prize_exchange` / `hdgrow_issue_coupon`
+- **公开只读**（无鉴权，`/agent/show/grow/**`）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`
+- **业务侧**（需 **AK/SK**，`/agent/grow/**`）：`hdgrow_points_query` / `hdgrow_server_tasks` / `hdgrow_server_prizes` / `hdgrow_points_add` / `hdgrow_prize_exchange` / `hdgrow_issue_coupon`
 
 ## Prerequisites
 
-- 业务侧工具需 appcode：环境变量 `HDGROW_APPCODE`（或 `~/.config/huaweicloud/credentials.json` 的 `grow_appcode`）。
-- 若工具返回 `AUTH_MISSING`，提示用户先配置 `HDGROW_APPCODE`。
-- 环境：`HDGROW_BASE` 默认测试网关；切现网请显式设置。
+- 业务侧工具需 **AK/SK**：环境变量 `HW_ACCESS_KEY` / `HW_SECRET_KEY`（或 `~/.config/huaweicloud/credentials.json`）。
+- `HDGROW_BASE` **须显式配置**（形如 `https://<网关>/api/v1/hdgrowservice`）；未配置会 fail-fast（`AUTH_MISSING`）。
+- 若工具返回 `AUTH_MISSING`，提示用户配置 AK/SK 或 `HDGROW_BASE`。
 
 ## Money-safety (READ FIRST)
 

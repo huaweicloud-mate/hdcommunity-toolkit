@@ -158,6 +158,19 @@ test('guard: prize_exchange quantity threshold + validation', async () => {
   assert.equal(high.data.risk_level, 'HIGH');
 });
 
+test('grow: missing HDGROW_BASE fails fast (no implicit environment)', async () => {
+  const prev = process.env.HDGROW_BASE;
+  delete process.env.HDGROW_BASE;
+  try {
+    const r = await callTool('hdgrow_task_list', {});
+    assert.equal(r.ok, false);
+    assert.equal(r.error.code, 'AUTH_MISSING');
+  } finally {
+    if (prev === undefined) delete process.env.HDGROW_BASE;
+    else process.env.HDGROW_BASE = prev;
+  }
+});
+
 test('guard: points_add previews by default (MID)', async () => {
   const r = await callTool('hdgrow_points_add', {
     domain_id: 'acc-1',

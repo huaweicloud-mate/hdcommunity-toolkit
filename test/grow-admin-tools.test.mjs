@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 
 import { callTool, TOOL_DEFINITIONS } from '../src/tools/index.mjs';
 
+// Base is read lazily; set a value so token/auth paths (not base) are exercised.
+process.env.HDGROW_BASE = process.env.HDGROW_BASE || 'https://grow.example/api/v1/hdgrowservice';
+
 const EXPECTED = [
   'hdgrow_admin_login',
   'hdgrow_admin_logout',
@@ -53,4 +56,17 @@ test('grow-admin: stats overview without token -> NEED_LOGIN', async () => {
 test('grow-admin: logout without token is a no-op ok', async () => {
   const r = await callTool('hdgrow_admin_logout', {});
   assert.equal(r.ok, true);
+});
+
+test('grow-admin: missing HDGROW_BASE fails fast', async () => {
+  const prev = process.env.HDGROW_BASE;
+  delete process.env.HDGROW_BASE;
+  try {
+    const r = await callTool('hdgrow_admin_stats', { kind: 'overview' });
+    assert.equal(r.ok, false);
+    assert.equal(r.error.code, 'AUTH_MISSING');
+  } finally {
+    if (prev === undefined) delete process.env.HDGROW_BASE;
+    else process.env.HDGROW_BASE = prev;
+  }
 });

@@ -91,8 +91,6 @@ export function hasAdminCredentials(creds) {
   return Boolean(creds?.adminUser && creds?.adminPass);
 }
 
-
-
 /** Mask an AK for logs. */
 export function maskAk(ak) {
   if (!ak || typeof ak !== 'string') return '';

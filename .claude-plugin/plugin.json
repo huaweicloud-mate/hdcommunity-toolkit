@@ -10,12 +10,12 @@
     "longDescription": "Lets coding agents read/write Huawei Cloud Community blogs, review content, operate the developer growth center (tasks/points/coupons, with money-config change-request approval), and expose public read-only data through MCP tools and guided Skills.",
     "developerName": "HuaweiCloud Community",
     "category": "Cloud",
-    "capabilities": ["Read", "Interactive"],
+    "capabilities": ["Read", "Write", "Interactive"],
     "brandColor": "#C7000B"
   },
   "author": {
     "name": "HuaweiCloud Community",
-    "url": "https://github.com/huaweicloud"
+    "url": "https://github.com/huaweicloud-mate"
   },
   "license": "Apache-2.0",
   "keywords": ["huaweicloud", "community", "blog", "growth", "grow", "points", "coupon", "mcp", "agent", "skills"]

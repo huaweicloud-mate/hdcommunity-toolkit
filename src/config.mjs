@@ -23,9 +23,11 @@ export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 3
 //   /agent/grow/**       business (AK/SK, per request)   -> callGrow
 //   /agent/admin/grow/** management (Bearer)             -> callGrowAdmin
 //
-// Base uses the service context-path /api/v1/hdgrowservice. Default = test gateway;
-// switch to prod via HDGROW_BASE.
+// Base MUST be configured explicitly (shape: https://<gateway>/api/v1/hdgrowservice).
+// No default: growth has money-write tools, so we fail-fast instead of silently
+// hitting an environment（默认不再指向任何网关）。
 // ---------------------------------------------------------------------------
 
-export const HDGROW_BASE =
-  process.env.HDGROW_BASE || 'https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice';
+export function growBase() {
+  return process.env.HDGROW_BASE || '';
+}

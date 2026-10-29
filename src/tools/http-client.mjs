@@ -9,7 +9,7 @@
 // into the toolkit result shape (see errors.mjs).
 
 import { request } from 'undici';
-import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS, HDGROW_BASE } from '../config.mjs';
+import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS, growBase } from '../config.mjs';
 import {
   loadCredentials,
   hasCredentials,
@@ -175,7 +175,7 @@ export async function logoutAdmin(sessionId, token) {
 // ---------------------------------------------------------------------------
 
 function buildGrowUrl(path, query) {
-  const url = new URL(HDGROW_BASE.replace(/\/$/, '') + path);
+  const url = new URL(growBase().replace(/\/$/, '') + path);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null || v === '') continue;
@@ -213,17 +213,22 @@ async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}
 
 /** Growth public read-only call — no auth. */
 export async function callGrowShow(method, path, { query, body } = {}) {
+  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
   return unwrap(await doGrowRequest(path, { method, query, body }));
 }
 
 const GROW_AUTH_MISSING =
   '未配置 AK/SK：请设置 HW_ACCESS_KEY/HW_SECRET_KEY（或 ~/.config/huaweicloud/credentials.json）';
 
+const GROW_BASE_HINT =
+  '未配置成长服务地址：请设置 HDGROW_BASE，形如 https://<网关>/api/v1/hdgrowservice（无默认值，禁用隐式环境）';
+
 /**
  * Growth business-side call (/agent/grow/**) — injects AK/SK headers per request,
  * same as the community blog user face (callBlog).
  */
 export async function callGrow(method, path, { query, body } = {}) {
+  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
   const creds = loadCredentials();
   if (!hasCredentials(creds)) return fail(CODES.AUTH_MISSING, GROW_AUTH_MISSING);
   const headers = {
@@ -246,6 +251,7 @@ const GROW_NEED_LOGIN =
 
 /** Growth management login — POST /manage/auth/login, no Bearer required. */
 export async function loginGrowAdmin(username, password) {
+  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
   return unwrap(await doGrowRequest('/manage/auth/login', { method: 'POST', body: { username, password } }));
 }
 
@@ -253,6 +259,7 @@ export async function loginGrowAdmin(username, password) {
 export async function logoutGrowAdmin(sessionId, token) {
   const t = token || getGrowToken(sessionId);
   if (!t) return ok(null);
+  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
   return unwrap(await doGrowRequest('/manage/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
 }
 
@@ -262,6 +269,7 @@ export async function logoutGrowAdmin(sessionId, token) {
  * @param {string} sessionId
  */
 export async function callGrowAdmin(sessionId, method, path, { query, body, token } = {}) {
+  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
   const t = token || getGrowToken(sessionId);
   if (!t) return fail(CODES.NEED_LOGIN, GROW_NEED_LOGIN);
   return unwrap(await doGrowRequest(path, {
