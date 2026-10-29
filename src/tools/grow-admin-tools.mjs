@@ -7,9 +7,9 @@
 // Money-safety: config writes go through the change-request flow (HIGH risk needs a second
 // approver != submitter). These tools never bypass that; create returns a one-time confirm_token.
 
-import { callGrowAdmin, loginGrowAdmin, logoutGrowAdmin } from './http-client.mjs';
+import { callGrowAdmin } from './http-client.mjs';
 import { GROW_ADMIN } from './grow-endpoints.mjs';
-import { setGrowToken, clearGrowToken } from '../session.mjs';
+import { loginBoth, logoutBoth } from './admin-session.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 
 const P = {
@@ -24,7 +24,7 @@ export const GROW_ADMIN_TOOLS = {
   definitions: [
     {
       name: 'hdgrow_admin_login',
-      description: 'Log in to the growth management console (internal account) and cache the token. 管理台登录。',
+      description: 'Log in with internal account. Unified: logs into BOTH the growth and community management consoles with the same account. 管理台登录（同时登录成长+博客）。',
       inputSchema: {
         type: 'object',
         required: ['username', 'password'],
@@ -33,7 +33,7 @@ export const GROW_ADMIN_TOOLS = {
     },
     {
       name: 'hdgrow_admin_logout',
-      description: 'Log out the growth management session (revokes token). 管理台注销。',
+      description: 'Log out of BOTH management consoles and clear both cached tokens. 管理台注销（同时登出成长+博客）。',
       inputSchema: { type: 'object', properties: { ...TOKEN_PROP } },
     },
 
@@ -263,18 +263,12 @@ export const GROW_ADMIN_TOOLS = {
   ],
 
   call: {
-    'hdgrow_admin_login': async (a, ctx) => {
-      const r = await loginGrowAdmin(a.username, a.password);
-      if (!r.ok) return r;
-      const d = r.data || {};
-      setGrowToken(ctx?.sessionId, { token: d.token, username: d.username, role: d.role });
-      return ok({ username: d.username, role: d.role });
-    },
-    'hdgrow_admin_logout': async (a, ctx) => {
-      const r = await logoutGrowAdmin(ctx?.sessionId, a.token);
-      clearGrowToken(ctx?.sessionId);
-      return r;
-    },
+    'hdgrow_admin_login': async (a, ctx) =>
+      // 统一登录：同一账号同时登录「成长 + 博客」两个管理台。
+      loginBoth(ctx?.sessionId, a.username, a.password),
+    'hdgrow_admin_logout': async (_a, ctx) =>
+      // 统一登出：同时登出两个管理台。
+      logoutBoth(ctx?.sessionId),
 
     'hdgrow_admin_change_create': (a, ctx) =>
       callGrowAdmin(ctx?.sessionId, 'POST', GROW_ADMIN.change, {

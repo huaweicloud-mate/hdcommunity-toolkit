@@ -10,8 +10,9 @@
 //   A1  admin blog page items are content-summarized (content_preview/content_length)
 //   A3  hdcommunity_admin_blog_detail (direct backend detail API, degraded composition otherwise)
 
-import { callAdmin, loginAdmin, logoutAdmin } from './http-client.mjs';
-import { setSessionToken, clearSessionToken, getSession } from '../session.mjs';
+import { callAdmin } from './http-client.mjs';
+import { loginBoth, logoutBoth } from './admin-session.mjs';
+import { getSession } from '../session.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 import { ADMIN_BLOG_DETAIL_PATH } from '../config.mjs';
 import { scanBlog, attachRiskCheck, summarizeBatchRisk } from './risk-control.mjs';
@@ -274,7 +275,7 @@ export const ADMIN_TOOLS = {
     {
       name: 'hdcommunity_admin_login',
       description:
-        'Log in to the admin console with internal account (username/password). Returns a token and caches it for this session. 管理面登录。',
+        'Log in with internal account (username/password). Unified: logs into BOTH the community and growth management consoles with the same account, caching each token for this session. 管理面登录（同时登录博客+成长两个管理台）。',
       inputSchema: {
         type: 'object',
         required: ['username', 'password'],
@@ -283,7 +284,7 @@ export const ADMIN_TOOLS = {
     },
     {
       name: 'hdcommunity_admin_logout',
-      description: 'Log out the admin session (revokes token). 管理面注销。',
+      description: 'Log out of BOTH management consoles and clear both cached tokens. 管理面注销（同时登出博客+成长）。',
       inputSchema: { type: 'object', properties: { ...TOKEN_PROP } },
     },
     {
@@ -449,19 +450,12 @@ export const ADMIN_TOOLS = {
   ],
 
   call: {
-    'hdcommunity_admin_login': async (a, ctx) => {
-      const r = await loginAdmin(a.username, a.password);
-      if (!r.ok) return r;
-      const d = r.data || {};
-      const user = d.user || {};
-      setSessionToken(ctx.sessionId, { token: d.token, username: user.username, role: user.role });
-      return ok({ token: d.token, user });
-    },
-    'hdcommunity_admin_logout': async (a, ctx) => {
-      const r = await logoutAdmin(ctx.sessionId, a.token);
-      clearSessionToken(ctx.sessionId);
-      return r.ok ? ok({ loggedOut: true }) : r;
-    },
+    'hdcommunity_admin_login': async (a, ctx) =>
+      // 统一登录：一次登录同时登录「博客 + 成长」两个管理台（同一账号）。
+      loginBoth(ctx.sessionId, a.username, a.password),
+    'hdcommunity_admin_logout': async (_a, ctx) =>
+      // 统一登出：同时登出两个管理台并清空两处缓存令牌。
+      logoutBoth(ctx.sessionId),
     'hdcommunity_admin_blog_page': async (a, ctx) => {
       const r = await callAdmin(ctx.sessionId, 'GET', '/agent/admin/blog/page', {
         query: { page_no: a.page_no, page_size: a.page_size, status: a.status, online: a.online, keyword: a.keyword },

@@ -58,6 +58,12 @@ test('grow-admin: logout without token is a no-op ok', async () => {
   assert.equal(r.ok, true);
 });
 
+test('unified: admin logout (community tool) logs out both consoles offline (no-op ok)', async () => {
+  const r = await callTool('hdcommunity_admin_logout', {});
+  assert.equal(r.ok, true);
+  assert.equal(r.data.loggedOut, true);
+});
+
 test('grow-admin: missing HDGROW_BASE fails fast', async () => {
   const prev = process.env.HDGROW_BASE;
   delete process.env.HDGROW_BASE;
