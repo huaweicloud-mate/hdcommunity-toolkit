@@ -18,6 +18,7 @@ import {
 } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 import { getSessionToken, setSessionToken, clearSessionToken, getGrowToken } from '../session.mjs';
+import { GROW_BIZ } from './grow-endpoints.mjs';
 
 function buildUrl(path, query) {
   const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
@@ -213,7 +214,7 @@ async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}
 
 /** Growth public read-only call — no auth. */
 export async function callGrowShow(method, path, { query, body } = {}) {
-  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
   return unwrap(await doGrowRequest(path, { method, query, body }));
 }
 
@@ -228,7 +229,7 @@ const GROW_BASE_HINT =
  * same as the community blog user face (callBlog).
  */
 export async function callGrow(method, path, { query, body } = {}) {
-  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
   const creds = loadCredentials();
   if (!hasCredentials(creds)) return fail(CODES.AUTH_MISSING, GROW_AUTH_MISSING);
   const headers = {
@@ -251,16 +252,16 @@ const GROW_NEED_LOGIN =
 
 /** Growth management login — POST /manage/auth/login, no Bearer required. */
 export async function loginGrowAdmin(username, password) {
-  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
-  return unwrap(await doGrowRequest('/manage/auth/login', { method: 'POST', body: { username, password } }));
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  return unwrap(await doGrowRequest(GROW_BIZ.login, { method: 'POST', body: { username, password } }));
 }
 
 /** Growth management logout — revokes the token on the backend. */
 export async function logoutGrowAdmin(sessionId, token) {
   const t = token || getGrowToken(sessionId);
   if (!t) return ok(null);
-  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
-  return unwrap(await doGrowRequest('/manage/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  return unwrap(await doGrowRequest(GROW_BIZ.logout, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
 }
 
 /**
@@ -269,7 +270,7 @@ export async function logoutGrowAdmin(sessionId, token) {
  * @param {string} sessionId
  */
 export async function callGrowAdmin(sessionId, method, path, { query, body, token } = {}) {
-  if (!growBase()) return fail(CODES.AUTH_MISSING, GROW_BASE_HINT);
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
   const t = token || getGrowToken(sessionId);
   if (!t) return fail(CODES.NEED_LOGIN, GROW_NEED_LOGIN);
   return unwrap(await doGrowRequest(path, {

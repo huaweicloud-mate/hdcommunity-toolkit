@@ -8,14 +8,17 @@ import { GROW_TOOLS } from './grow-tools.mjs';
 import { GROW_ADMIN_TOOLS } from './grow-admin-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
-// Growth management-console tools can be disabled via HDGROW_DISABLE_ADMIN=1 (default on).
+// Growth management-console tools:默认开启；设 HDGROW_ADMIN_ENABLED=0 关闭
+// （兼容旧名 HDGROW_DISABLE_ADMIN=1）。
+const growAdminEnabled =
+  process.env.HDGROW_ADMIN_ENABLED !== '0' && process.env.HDGROW_DISABLE_ADMIN !== '1';
 const GROUPS = [
   BLOG_TOOLS,
   ADMIN_TOOLS,
   SHOW_TOOLS,
   RISK_TOOLS,
   GROW_TOOLS,
-  ...(process.env.HDGROW_DISABLE_ADMIN === '1' ? [] : [GROW_ADMIN_TOOLS]),
+  ...(growAdminEnabled ? [GROW_ADMIN_TOOLS] : []),
 ];
 
 export const TOOL_DEFINITIONS = GROUPS.flatMap((g) => g.definitions);

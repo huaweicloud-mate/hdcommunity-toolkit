@@ -64,7 +64,7 @@ test('grow-admin: missing HDGROW_BASE fails fast', async () => {
   try {
     const r = await callTool('hdgrow_admin_stats', { kind: 'overview' });
     assert.equal(r.ok, false);
-    assert.equal(r.error.code, 'AUTH_MISSING');
+    assert.equal(r.error.code, 'CONFIG_MISSING');
   } finally {
     if (prev === undefined) delete process.env.HDGROW_BASE;
     else process.env.HDGROW_BASE = prev;

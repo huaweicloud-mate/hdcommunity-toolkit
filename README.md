@@ -140,9 +140,11 @@ npx hdcommunity-toolkit help
 | `HDCOMMUNITY_ADMIN_BLOG_DETAIL_PATH` | `/manage/blog/{id}/detail` | 管理面博客详情路径（后端 A3 契约，`{id}` 占位） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDCOMMUNITY_TIMEOUT_MS` | `30000` | 请求超时（毫秒） |
-| `HDGROW_BASE` | `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长中心服务地址（展示 `/agent/show/grow/**` + 业务 `/agent/grow/**` + 管理台 `/agent/admin/grow/**`） |
+| `HDGROW_BASE` | **必填（无默认）** | 成长中心服务地址，形如 `https://<网关>/api/v1/hdgrowservice`（已含 context-path）；未配置 → **`CONFIG_MISSING`** |
 | `HDGROW_RISK_FACE_AMOUNT_MAX` | `100` | 发券单张面额高风险阈值（元），超阈值需 `confirm_high_risk` + `reason` |
 | `HDGROW_RISK_QUANTITY_MAX` | `10` | 兑换单次券数量高风险阈值 |
+| `HDGROW_TOKEN_TTL_MS` | `1800000` | 管理台登录令牌本地缓存 TTL（毫秒，默认 30min） |
+| `HDGROW_ADMIN_ENABLED` | `true` | 设为 `0` 关闭 `hdgrow_admin_*` 工具组（默认开启） |
 
 > 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` / `HDGROW_BASE` 指向你的环境。
 > 成长中心沿用博客分层：业务侧 `/agent/grow/**` 用 **AK/SK**（与博客一致）；管理台 `/agent/admin/grow/**` 用内部账号 **Bearer**（登录 `/manage/auth/login`）；展示面 `/agent/show/grow/**` 无鉴权。

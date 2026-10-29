@@ -18,8 +18,8 @@ Operates the Huawei Cloud developer growth center (HDGrowService, base `/api/v1/
 ## Prerequisites
 
 - 业务侧工具需 **AK/SK**：环境变量 `HW_ACCESS_KEY` / `HW_SECRET_KEY`（或 `~/.config/huaweicloud/credentials.json`）。
-- `HDGROW_BASE` **须显式配置**（形如 `https://<网关>/api/v1/hdgrowservice`）；未配置会 fail-fast（`AUTH_MISSING`）。
-- 若工具返回 `AUTH_MISSING`，提示用户配置 AK/SK 或 `HDGROW_BASE`。
+- `HDGROW_BASE` **须显式配置**（形如 `https://<网关>/api/v1/hdgrowservice`）；未配置会 fail-fast（**`CONFIG_MISSING`**）。
+- 若返回 `CONFIG_MISSING` → 配置 `HDGROW_BASE`；若返回 `AUTH_MISSING` → 配置 AK/SK。
 
 ## Money-safety (READ FIRST)
 

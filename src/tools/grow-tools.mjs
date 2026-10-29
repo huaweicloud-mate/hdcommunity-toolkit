@@ -17,6 +17,7 @@
 
 import crypto from 'node:crypto';
 import { callGrowShow, callGrow } from './http-client.mjs';
+import { GROW_SHOW, GROW_BIZ } from './grow-endpoints.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 
 const P = {
@@ -34,7 +35,20 @@ const THRESHOLDS = {
 // --- one-time confirm tokens (in-memory, per process) ---
 const TOKEN_SECRET = crypto.randomBytes(32);
 const TOKEN_TTL_MS = 5 * 60 * 1000;
+const TOKEN_MAX = Number(process.env.HDGROW_CONFIRM_TOKEN_MAX || 500);
 const tokenStore = new Map(); // token -> { hash, exp }
+
+/** 清理过期令牌，并限制总量（防长驻进程内存增长）。 */
+function sweepTokens() {
+  const now = Date.now();
+  for (const [k, v] of tokenStore) {
+    if (v.exp < now) tokenStore.delete(k);
+  }
+  while (tokenStore.size > TOKEN_MAX) {
+    const oldest = tokenStore.keys().next().value;
+    tokenStore.delete(oldest);
+  }
+}
 
 function canonicalHash(obj) {
   const norm = (v) => {
@@ -51,6 +65,7 @@ function canonicalHash(obj) {
 }
 
 function issueToken(body) {
+  sweepTokens();
   const hash = canonicalHash(body);
   const exp = Date.now() + TOKEN_TTL_MS;
   const token = crypto.createHmac('sha256', TOKEN_SECRET).update(`${hash}|${exp}`).digest('hex').slice(0, 32);
@@ -122,7 +137,7 @@ const FACE_RE = /^\d+(\.\d{1,2})?$/;
 
 export const GROW_TOOLS = {
   definitions: [
-    // --- A. public read-only (/servlet) ---
+    // --- A. public read-only (/agent/show/grow, no auth) ---
     {
       name: 'hdgrow_task_list',
       description:
@@ -152,10 +167,10 @@ export const GROW_TOOLS = {
       },
     },
 
-    // --- B. service-to-service reads (/server, appcode) ---
+    // --- B. business reads (/agent/grow, AK/SK) ---
     {
       name: 'hdgrow_points_query',
-      description: 'Query a user current total points (service-to-service, appcode). 查询用户积分。',
+      description: 'Query a user current total points (business, AK/SK). 查询用户积分。',
       inputSchema: {
         type: 'object',
         required: ['domain_id'],
@@ -169,7 +184,7 @@ export const GROW_TOOLS = {
     {
       name: 'hdgrow_server_tasks',
       description:
-        'Query valid tasks via the server interface (appcode); with domain_id returns per-user finish status. 服务间查询任务列表。',
+        'Query valid tasks via the server interface (AK/SK); with domain_id returns per-user finish status. 服务间查询任务列表。',
       inputSchema: {
         type: 'object',
         properties: {
@@ -187,7 +202,7 @@ export const GROW_TOOLS = {
     {
       name: 'hdgrow_server_prizes',
       description:
-        'Query prizes via the server interface (appcode); with domain_id returns per-user exchange fields. 服务间查询权益列表。',
+        'Query prizes via the server interface (AK/SK); with domain_id returns per-user exchange fields. 服务间查询权益列表。',
       inputSchema: {
         type: 'object',
         properties: {
@@ -204,7 +219,7 @@ export const GROW_TOOLS = {
     {
       name: 'hdgrow_points_add',
       description:
-        'Issue points to a user after a task completes (appcode). MONEY-SENSITIVE: previews by default (dry_run=true); points value is derived by the backend from task_id. 发放积分（写，默认预演）。',
+        'Issue points to a user after a task completes (AK/SK). MONEY-SENSITIVE: previews by default (dry_run=true); points value is derived by the backend from task_id. 发放积分（写，默认预演）。',
       inputSchema: {
         type: 'object',
         required: ['domain_id', 'task_id', 'completed_at'],
@@ -224,7 +239,7 @@ export const GROW_TOOLS = {
     {
       name: 'hdgrow_prize_exchange',
       description:
-        'Exchange a prize for a user via the server interface (appcode). MONEY-SENSITIVE: deducts points + stock and issues real coupons; previews by default. 兑换代金券（写，默认预演）。',
+        'Exchange a prize for a user via the server interface (AK/SK). MONEY-SENSITIVE: deducts points + stock and issues real coupons; previews by default. 兑换代金券（写，默认预演）。',
       inputSchema: {
         type: 'object',
         required: ['domain_id', 'prize_id', 'biz_id'],
@@ -245,7 +260,7 @@ export const GROW_TOOLS = {
     {
       name: 'hdgrow_issue_coupon',
       description:
-        'Issue an incentive coupon by face amount (appcode). MOST MONEY-SENSITIVE: issues real value directly; previews by default. 发代金券（写，默认预演）。',
+        'Issue an incentive coupon by face amount (AK/SK). MOST MONEY-SENSITIVE: issues real value directly; previews by default. 发代金券（写，默认预演）。',
       inputSchema: {
         type: 'object',
         required: ['domain_id', 'face_amount', 'biz_id'],
@@ -266,7 +281,7 @@ export const GROW_TOOLS = {
   call: {
     // --- A. public read-only ---
     'hdgrow_task_list': (a) =>
-      callGrowShow('GET', '/agent/show/grow/task/list', {
+      callGrowShow('GET', GROW_SHOW.taskList, {
         query: {
           category_key: a.category_key,
           biz_type: a.biz_type,
@@ -275,17 +290,17 @@ export const GROW_TOOLS = {
           page_size: a.page_size,
         },
       }),
-    'hdgrow_task_categories': () => callGrowShow('GET', '/agent/show/grow/task/categories'),
+    'hdgrow_task_categories': () => callGrowShow('GET', GROW_SHOW.taskCategories),
     'hdgrow_prize_list': (a) =>
-      callGrowShow('GET', '/agent/show/grow/prize/list', { query: { page_no: a.page_no, page_size: a.page_size } }),
+      callGrowShow('GET', GROW_SHOW.prizeList, { query: { page_no: a.page_no, page_size: a.page_size } }),
 
     // --- B. service reads ---
     'hdgrow_points_query': (a) =>
-      callGrow('POST', '/agent/grow/points/query', {
+      callGrow('POST', GROW_BIZ.pointsQuery, {
         body: { domain_id: a.domain_id, user_type: a.user_type, iam_id: a.iam_id },
       }),
     'hdgrow_server_tasks': (a) =>
-      callGrow('POST', '/agent/grow/task/list', {
+      callGrow('POST', GROW_BIZ.taskList, {
         body: {
           domain_id: a.domain_id,
           user_type: a.user_type,
@@ -298,7 +313,7 @@ export const GROW_TOOLS = {
         },
       }),
     'hdgrow_server_prizes': (a) =>
-      callGrow('POST', '/agent/grow/prize/list', {
+      callGrow('POST', GROW_BIZ.prizeList, {
         body: {
           domain_id: a.domain_id,
           user_type: a.user_type,
@@ -322,17 +337,20 @@ export const GROW_TOOLS = {
         {
           action: 'points_add',
           method: 'POST',
-          endpoint: '/agent/grow/points/add',
+          endpoint: GROW_BIZ.pointsAdd,
           body,
           money: { note: '积分值由后端按 task_id 查询 hd_grow_task.points 决定，调用方不可传入', task_id: a.task_id },
           hits: [],
         },
         a,
-        () => callGrow('POST', '/agent/grow/points/add', { body }),
+        () => callGrow('POST', GROW_BIZ.pointsAdd, { body }),
       );
     },
 
     'hdgrow_prize_exchange': (a) => {
+      if (!a.biz_id || !String(a.biz_id).trim()) {
+        return fail(CODES.PARAM_ERROR, 'biz_id 必填（幂等键）：兑换重试须复用同一 biz_id');
+      }
       const quantity = a.quantity === undefined || a.quantity === null ? 1 : Number(a.quantity);
       if (!Number.isInteger(quantity) || quantity < 1) {
         return fail(CODES.PARAM_ERROR, 'quantity 必须为 ≥1 的整数');
@@ -350,17 +368,20 @@ export const GROW_TOOLS = {
         {
           action: 'prize_exchange',
           method: 'POST',
-          endpoint: '/agent/grow/prize/exchange',
+          endpoint: GROW_BIZ.prizeExchange,
           body,
           money: { quantity, note: '实际发券总额 = 单张面额 × quantity，由后端 prize 数据决定；扣积分 = points_price × quantity' },
           hits,
         },
         a,
-        () => callGrow('POST', '/agent/grow/prize/exchange', { body }),
+        () => callGrow('POST', GROW_BIZ.prizeExchange, { body }),
       );
     },
 
     'hdgrow_issue_coupon': (a) => {
+      if (!a.biz_id || !String(a.biz_id).trim()) {
+        return fail(CODES.PARAM_ERROR, 'biz_id 必填（幂等键）');
+      }
       const currency = a.currency_code || 'CNY';
       if (!FACE_RE.test(String(a.face_amount)) || Number(a.face_amount) <= 0) {
         return fail(CODES.PARAM_ERROR, 'face_amount 必须为大于 0 的数字（最多两位小数，字符串，如 "10.00"）');
@@ -377,13 +398,13 @@ export const GROW_TOOLS = {
         {
           action: 'issue_coupon',
           method: 'POST',
-          endpoint: '/agent/grow/issue-coupon',
+          endpoint: GROW_BIZ.issueCoupon,
           body,
           money: { face_amount: a.face_amount, currency_code: currency, total_face: a.face_amount },
           hits,
         },
         a,
-        () => callGrow('POST', '/agent/grow/issue-coupon', { body }),
+        () => callGrow('POST', GROW_BIZ.issueCoupon, { body }),
       );
     },
   },

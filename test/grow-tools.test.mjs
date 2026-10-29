@@ -164,7 +164,7 @@ test('grow: missing HDGROW_BASE fails fast (no implicit environment)', async () 
   try {
     const r = await callTool('hdgrow_task_list', {});
     assert.equal(r.ok, false);
-    assert.equal(r.error.code, 'AUTH_MISSING');
+    assert.equal(r.error.code, 'CONFIG_MISSING');
   } finally {
     if (prev === undefined) delete process.env.HDGROW_BASE;
     else process.env.HDGROW_BASE = prev;
@@ -180,4 +180,16 @@ test('guard: points_add previews by default (MID)', async () => {
   assert.equal(r.ok, true);
   assert.equal(r.data.preview, true);
   assert.equal(r.data.risk_level, 'MID');
+});
+
+test('validation: prize_exchange requires biz_id', async () => {
+  const r = await callTool('hdgrow_prize_exchange', { domain_id: 'd', prize_id: 'p' });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'PARAM_ERROR');
+});
+
+test('validation: issue_coupon requires biz_id', async () => {
+  const r = await callTool('hdgrow_issue_coupon', { domain_id: 'd', face_amount: '10.00' });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'PARAM_ERROR');
 });
