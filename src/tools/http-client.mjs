@@ -18,8 +18,7 @@ import {
   loadGrowAppCode,
 } from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
-import { getSessionToken, setSessionToken, clearSessionToken } from '../session.mjs';
-import { getGrowToken } from '../session.mjs';
+import { getSessionToken, setSessionToken, clearSessionToken, getGrowToken } from '../session.mjs';
 
 function buildUrl(path, query) {
   const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
