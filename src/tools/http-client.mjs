@@ -9,10 +9,16 @@
 // into the toolkit result shape (see errors.mjs).
 
 import { request } from 'undici';
-import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
-import { loadCredentials, hasCredentials, loadAdminCredentials, hasAdminCredentials } from '../credentials.mjs';
+import { BACKEND_BASE, ADMIN_LOGIN_PATH, ADMIN_LOGOUT_PATH, REGION, DEFAULT_TIMEOUT_MS, growBase } from '../config.mjs';
+import {
+  loadCredentials,
+  hasCredentials,
+  loadAdminCredentials,
+  hasAdminCredentials,
+} from '../credentials.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
-import { getSessionToken, setSessionToken, clearSessionToken } from '../session.mjs';
+import { getSessionToken, setSessionToken, clearSessionToken, getGrowToken } from '../session.mjs';
+import { GROW_BIZ } from './grow-endpoints.mjs';
 
 function buildUrl(path, query) {
   const url = new URL(BACKEND_BASE.replace(/\/$/, '') + path);
@@ -160,4 +166,122 @@ export async function logoutAdmin(sessionId, token) {
   const t = token || getSessionToken(sessionId);
   if (!t) return ok(null);
   return unwrap(await doRequest(ADMIN_LOGOUT_PATH, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
+}
+
+// ---------------------------------------------------------------------------
+// Growth center (HDGrowService) — separate base (context-path /api/v1/hdgrowservice).
+//
+//   callGrowShow -> /agent/show/grow/**  public read-only, no auth
+//   callGrow     -> /agent/grow/**       business, injects X-HW-AK/SK
+// ---------------------------------------------------------------------------
+
+function buildGrowUrl(path, query) {
+  const base = growBase();
+  if (!base) {
+    // 空 base 兜底（调用方已前置校验并返回 CONFIG_MISSING，这里再防一层）
+    throw new Error('HDGROW_BASE 未配置（空值）');
+  }
+  const url = new URL(base.replace(/\/$/, '') + path);
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined || v === null || v === '') continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+  return url;
+}
+
+async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}) {
+  const url = buildGrowUrl(path, query);
+  let res;
+  try {
+    res = await request(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      bodyTimeout: DEFAULT_TIMEOUT_MS,
+      headersTimeout: DEFAULT_TIMEOUT_MS,
+    });
+  } catch (e) {
+    return { transportError: e.message };
+  }
+  const text = await res.body.text();
+  let json = null;
+  if (text) {
+    try {
+      json = JSON.parse(text);
+    } catch {
+      /* non-JSON body */
+    }
+  }
+  return { status: res.statusCode, json, text };
+}
+
+/** Growth public read-only call — no auth. */
+export async function callGrowShow(method, path, { query, body } = {}) {
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  return unwrap(await doGrowRequest(path, { method, query, body }));
+}
+
+const GROW_AUTH_MISSING =
+  '未配置 AK/SK：请设置 HW_ACCESS_KEY/HW_SECRET_KEY（或 ~/.config/huaweicloud/credentials.json）';
+
+const GROW_BASE_HINT =
+  '未配置成长服务地址：请设置 HDGROW_BASE，形如 https://<网关>/api/v1/hdgrowservice（无默认值，禁用隐式环境）';
+
+/**
+ * Growth business-side call (/agent/grow/**) — injects AK/SK headers per request,
+ * same as the community blog user face (callBlog).
+ */
+export async function callGrow(method, path, { query, body } = {}) {
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  const creds = loadCredentials();
+  if (!hasCredentials(creds)) return fail(CODES.AUTH_MISSING, GROW_AUTH_MISSING);
+  const headers = {
+    'X-HW-AK': creds.ak,
+    'X-HW-SK': creds.sk,
+    'X-HW-PROJECT-ID': creds.projectId || '',
+    'X-HW-REGION': creds.region || REGION,
+  };
+  if (creds.securityToken) headers['X-HW-Security-Token'] = creds.securityToken;
+  return unwrap(await doGrowRequest(path, { method, query, body, headers }));
+}
+
+// ---------------------------------------------------------------------------
+// Growth management console (/manage/**) — internal account login → Bearer token.
+// Token cached per session in a dedicated namespace (getGrowToken).
+// ---------------------------------------------------------------------------
+
+const GROW_NEED_LOGIN =
+  '管理台未登录：请先调用 hdgrow_admin_login { username, password }（内部账号，角色 operator/approver/admin）';
+
+/** Growth management login — POST /manage/auth/login, no Bearer required. */
+export async function loginGrowAdmin(username, password) {
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  return unwrap(await doGrowRequest(GROW_BIZ.login, { method: 'POST', body: { username, password } }));
+}
+
+/** Growth management logout — revokes the token on the backend. */
+export async function logoutGrowAdmin(sessionId, token) {
+  const t = token || getGrowToken(sessionId);
+  if (!t) return ok(null);
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  return unwrap(await doGrowRequest(GROW_BIZ.logout, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }));
+}
+
+/**
+ * Growth management call — Bearer token from explicit arg or session cache.
+ * No auto-relogin (unlike the community admin side): call hdgrow_admin_login explicitly.
+ * @param {string} sessionId
+ */
+export async function callGrowAdmin(sessionId, method, path, { query, body, token } = {}) {
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  const t = token || getGrowToken(sessionId);
+  if (!t) return fail(CODES.NEED_LOGIN, GROW_NEED_LOGIN);
+  return unwrap(await doGrowRequest(path, {
+    method,
+    query,
+    body,
+    headers: { Authorization: `Bearer ${t}` },
+  }));
 }

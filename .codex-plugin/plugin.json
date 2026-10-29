@@ -1,19 +1,19 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.1.2",
-  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for blog authoring, content review, and read-only data exposure.",
+  "version": "0.2.0",
+  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/review/promote), the developer growth center (tasks/points/coupons + management-console change-request approval), and read-only data exposure.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {
     "displayName": "HDCommunity Toolkit",
-    "shortDescription": "Huawei Cloud Community toolkit — MCP tools + Skills for blogs.",
+    "shortDescription": "Huawei Cloud Community toolkit — MCP tools + Skills for blogs and the developer growth center.",
     "developerName": "HuaweiCloud Community",
     "category": "Cloud"
   },
   "author": {
     "name": "HuaweiCloud Community",
-    "url": "https://github.com/huaweicloud"
+    "url": "https://github.com/huaweicloud-mate"
   },
   "license": "Apache-2.0",
-  "keywords": ["huaweicloud", "community", "blog", "mcp", "agent", "skills"]
+  "keywords": ["huaweicloud", "community", "blog", "growth", "grow", "points", "coupon", "mcp", "agent", "skills"]
 }

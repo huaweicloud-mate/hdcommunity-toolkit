@@ -1,5 +1,7 @@
 // Smoke test: exercise the MCP protocol layer in-process (no network).
-import { dispatch } from '../src/mcp-protocol.mjs';
+// 管理台工具组默认关闭；smoke 显式开启以覆盖全量工具（GROUPS 在 import 时求值）。
+process.env.HDGROW_ADMIN_ENABLED = process.env.HDGROW_ADMIN_ENABLED || '1';
+const { dispatch } = await import('../src/mcp-protocol.mjs');
 
 const init = await dispatch('initialize', { clientInfo: { name: 'smoke' } });
 const list = await dispatch('tools/list', {});

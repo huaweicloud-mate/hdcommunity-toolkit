@@ -28,11 +28,13 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 37 个 MCP 工具）：看/写/发/编辑/删除博客、草稿、评论、
+安装完成后我应能用这些能力（共 46 个 MCP 工具；另可开启 20 个管理台工具）：看/写/发/编辑/删除博客、草稿、评论、
 点赞/收藏/关注、上传图片；管理面登录并审核博客与评论（审核前自动本地内容风控，标记风险不阻断；401 自动重登；批量条件过滤 + dry_run 预览 + 按 id 回执）、
 上下线、置顶、审核记录、工作台统计、内容风控检查；
-对外公开只读的博客列表/详情。另含 4 个 Skill：hd-blog-author / hd-blog-operator /
-hd-blog-promote / hd-experience。
+对外公开只读的博客列表/详情。**成长中心（HDGrowService）**：公开只读的任务/分类/权益列表、
+业务侧发积分/查积分/发券/兑换（涉钱写操作默认预演 + 确认令牌 + 高风险阈值）；
+**成长中心管理台**：内部账号登录 + 涉钱配置变更单（草案/确认/分级审批/生效/回滚）、任务/权益/白名单查询、记录审计、统计看板。
+另含 6 个 Skill：hd-blog-author / hd-blog-operator / hd-blog-promote / hd-experience / hd-grow-operator / hd-grow-admin。
 ```
 
 > **极简版（一行提示词）**：
@@ -138,12 +140,18 @@ npx hdcommunity-toolkit help
 | `HDCOMMUNITY_ADMIN_BLOG_DETAIL_PATH` | `/manage/blog/{id}/detail` | 管理面博客详情路径（后端 A3 契约，`{id}` 占位） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDCOMMUNITY_TIMEOUT_MS` | `30000` | 请求超时（毫秒） |
+| `HDGROW_BASE` | **必填（无默认）** | 成长中心服务地址，形如 `https://<网关>/api/v1/hdgrowservice`（已含 context-path）；未配置 → **`CONFIG_MISSING`** |
+| `HDGROW_RISK_FACE_AMOUNT_MAX` | `100` | 发券单张面额高风险阈值（元），超阈值需 `confirm_high_risk` + `reason` |
+| `HDGROW_RISK_QUANTITY_MAX` | `10` | 兑换单次券数量高风险阈值 |
+| `HDGROW_TOKEN_TTL_MS` | `1800000` | 管理台登录令牌本地缓存 TTL（毫秒，默认 30min） |
+| `HDGROW_ADMIN_ENABLED` | `0` | 设为 `1` 开启 `hdgrow_admin_*` 工具组（20 个，含内部账号登录/审批/生效；**默认关闭**） |
 
-> 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` 指向你的环境。
+> 在 Agent 的 MCP 配置里通过 `env` 传入，例如把 `HDCOMMUNITY_BASE` / `HDGROW_BASE` 指向你的环境。
+> 成长中心沿用博客分层：业务侧 `/agent/grow/**` 用 **AK/SK**（与博客一致）；管理台 `/agent/admin/grow/**` 用内部账号 **Bearer**（登录 `/manage/auth/login`）；展示面 `/agent/show/grow/**` 无鉴权。
 
 ---
 
-## 工具清单（共 37 个）
+## 工具清单（共 66 个；默认 46，管理台 20 需 `HDGROW_ADMIN_ENABLED=1` 开启）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -258,6 +266,65 @@ npx hdcommunity-toolkit help
 
 ---
 
+## 成长中心（HDGrowService，共 9 个）
+
+与博客平行的一段能力，对接华为云开发者成长体系（`/api/v1/hdgrowservice`）。
+
+### 公开只读（3）— 无需鉴权
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_task_list` | 成长中心任务列表（`GET /agent/show/grow/task/list`） |
+| `hdgrow_task_categories` | 任务分类列表（`GET /agent/show/grow/task/categories`） |
+| `hdgrow_prize_list` | 权益(代金券)列表（`GET /agent/show/grow/prize/list`） |
+
+### 业务侧（6）— 需 AK/SK（`/agent/grow/**`）
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_points_query` | 查询用户积分（`/agent/grow/points/query`） |
+| `hdgrow_server_tasks` | 业务侧任务列表（`/agent/grow/task/list`） |
+| `hdgrow_server_prizes` | 业务侧权益列表（`/agent/grow/prize/list`） |
+| `hdgrow_points_add` | **发放积分（写）** `/agent/grow/points/add` |
+| `hdgrow_prize_exchange` | **兑换代金券（写）** `/agent/grow/prize/exchange` |
+| `hdgrow_issue_coupon` | **发代金券（写）** `/agent/grow/issue-coupon` |
+
+> **涉钱写操作安全防护**（`points_add` / `prize_exchange` / `issue_coupon`）：
+> 1. 默认 `dry_run=true` **只预演不落库**，返回参数、金额、风险等级与 `confirm_token`；
+> 2. 执行须传 `dry_run=false` + `confirm_token`（一次性、HMAC、TTL 5 分钟，**绑定请求体**，参数被改动即拒绝）；
+> 3. 超阈值（`face_amount>100` 元 / `quantity>10`）须 `confirm_high_risk=true` + 非空 `reason`；
+> 4. `issue_coupon`/`prize_exchange` 强制 `biz_id` 幂等；插件层**不自动重试**。
+>
+> > 运营「配置」侧（任务发放积分、券数量/面额等**设置项**）见下方「成长中心管理台」。
+
+---
+
+## 成长中心管理台（HDGrowService，共 20 个）
+
+对接 `hdgrowservice` 的 `/agent/admin/grow/**`（登录/注销仍走真实路径 `/manage/auth/*`）。**内部账号登录**（Bearer token，非 AK/SK）。
+
+> **默认关闭**（含内部账号登录/审批/生效）：需设 `HDGROW_ADMIN_ENABLED=1` 才注册这 20 个工具。
+
+### 认证（2）
+`hdgrow_admin_login`（内部账号，角色 operator/approver/admin）· `hdgrow_admin_logout`
+
+### 涉钱配置变更单（7）
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_admin_change_create` | 生成草案：diff / 金额影响 / 风险 + 一次性 `confirm_token`（**不落库**） |
+| `hdgrow_admin_change_commit` | 提交人确认（`confirm_token` + `reason`）；LOW/MID→READY，HIGH→PENDING_APPROVAL |
+| `hdgrow_admin_change_approve` | 审批人 approve/reject（HIGH 且 **approver ≠ submitter**） |
+| `hdgrow_admin_change_apply` | 生效（写目标表） |
+| `hdgrow_admin_change_revert` | 回滚（按 before 快照 / 新建则禁用/逻辑删除） |
+| `hdgrow_admin_change_get` / `hdgrow_admin_change_page` | 详情 / 分页 |
+
+> 涉钱配置**禁止直改**：任务积分、权益面额/库存/数量、白名单放权、用户积分调整，一律走变更流；阈值 HIGH 需双人审批。
+
+### 查询 / 审计 / 统计（11）
+`hdgrow_admin_task_page`/`_get` · `hdgrow_admin_prize_page`/`_get` · `hdgrow_admin_whitelist_page`
+`hdgrow_admin_record_points`/`_exchange`/`_issue`/`_job` · `hdgrow_admin_user_page`
+`hdgrow_admin_stats`（overview / stock / exchange_trend / task_distribution）
+
+---
+
 ## 内置 Skill
 
 | Skill | 用途 |
@@ -266,6 +333,8 @@ npx hdcommunity-toolkit help
 | `hd-blog-operator` | 运营「待审清理 / 内容巡检」 |
 | `hd-blog-promote` | 博客 → 各平台推广文案 |
 | `hd-experience` | 体验案例上报（skill 直调体验官服务接口） |
+| `hd-grow-operator` | 成长中心运营/查询（看任务/权益、查积分、发积分/发券，涉钱写操作强制预演） |
+| `hd-grow-admin` | 成长中心管理台（内部登录、涉钱配置变更单分级审批、任务/权益/白名单、记录审计、统计） |
 
 ---
 
