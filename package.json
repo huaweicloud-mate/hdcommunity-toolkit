@@ -1,6 +1,6 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent toolkit for Huawei Cloud Community — MCP tools and Skills for community blogs (author/review/promote), the developer growth center (tasks/points/coupons + management-console change-request approval), and read-only data exposure.",
   "type": "module",
   "repository": {
