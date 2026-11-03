@@ -44,3 +44,15 @@ export const GROW_ADMIN = {
     task_distribution: '/agent/admin/grow/stats/task-distribution',
   },
 };
+
+/** 用户面（AK/SK；身份由网关注入，后端信任 X-User-Id/X-User-Name） */
+export const GROW_USER = {
+  info: '/agent/user/grow/info',
+  tasks: '/agent/user/grow/tasks',
+  prizes: '/agent/user/grow/prizes',
+  signIn: '/agent/user/grow/sign-in',
+  signInStatus: '/agent/user/grow/sign-in/status',
+  pointsDetail: '/agent/user/grow/points/detail',
+  exchangeRecords: '/agent/user/grow/exchange/records',
+  prizeExchange: '/agent/user/grow/prize/exchange',
+};

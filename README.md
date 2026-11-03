@@ -28,7 +28,7 @@
    - 写入 ~/.config/huaweicloud/credentials.json：
      {"ak":"<AK>","sk":"<SK>","securityToken":"","region":"cn-north-4"}
    - 若已安装 huaweicloud-devkit：运行 npx --yes huaweicloud-devkit auth init
-安装完成后我应能用这些能力（共 46 个 MCP 工具；另可开启 20 个管理台工具）：看/写/发/编辑/删除博客、草稿、评论、
+安装完成后我应能用这些能力（共 54 个 MCP 工具；另可开启 20 个管理台工具）：看/写/发/编辑/删除博客、草稿、评论、
 点赞/收藏/关注、上传图片；管理面登录并审核博客与评论（审核前自动本地内容风控，标记风险不阻断；401 自动重登；批量条件过滤 + dry_run 预览 + 按 id 回执）、
 上下线、置顶、审核记录、工作台统计、内容风控检查；
 对外公开只读的博客列表/详情。**成长中心（HDGrowService）**：公开只读的任务/分类/权益列表、
@@ -151,7 +151,7 @@ npx hdcommunity-toolkit help
 
 ---
 
-## 工具清单（共 66 个；默认 46，管理台 20 需 `HDGROW_ADMIN_ENABLED=1` 开启）
+## 工具清单（共 74 个；默认 54，管理台 20 需 `HDGROW_ADMIN_ENABLED=1` 开启）
 
 ### 用户面（20）— 需 AK/SK
 
@@ -294,6 +294,23 @@ npx hdcommunity-toolkit help
 > 4. `issue_coupon`/`prize_exchange` 强制 `biz_id` 幂等；插件层**不自动重试**。
 >
 > > 运营「配置」侧（任务发放积分、券数量/面额等**设置项**）见下方「成长中心管理台」。
+
+---
+
+## 成长中心用户面（HDGrowService，共 8 个）
+
+对齐博客用户面：**AK/SK**（`/agent/user/grow/**`；身份由网关注入 `X-User-Id`/`X-User-Name`，后端信任）。
+
+| 工具 | 作用 |
+|---|---|
+| `hdgrow_user_info` | 我的成长信息（自动建档） |
+| `hdgrow_user_tasks` | 我的任务（含 `is_finish`/`completed_times`/`task_limit`、steps） |
+| `hdgrow_user_prizes` | 我的权益（含可兑换字段） |
+| `hdgrow_user_sign_in` | 签到（仅主账号） |
+| `hdgrow_user_sign_in_status` | 今日签到状态 |
+| `hdgrow_user_points_detail` | 我的积分明细 |
+| `hdgrow_user_exchange_records` | 我的兑换记录 |
+| `hdgrow_user_prize_exchange` | 本人自助兑换（写，默认预演 + `biz_id` 幂等） |
 
 ---
 

@@ -110,7 +110,7 @@ function moneyPreview(action, method, endpoint, body, money, hits, token, exp) {
  * @param {object} args original tool args (dry_run / confirm_token / confirm_high_risk / reason)
  * @param {() => Promise<object>} exec real backend call
  */
-function guardWrite({ action, method, endpoint, body, money, hits = [] }, args, exec) {
+export function guardWrite({ action, method, endpoint, body, money, hits = [] }, args, exec) {
   if (args.dry_run !== false) {
     const { token, exp } = issueToken(body);
     return ok(moneyPreview(action, method, endpoint, body, money, hits, token, exp));

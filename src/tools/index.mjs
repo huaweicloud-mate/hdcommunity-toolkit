@@ -5,6 +5,7 @@ import { ADMIN_TOOLS } from './admin-tools.mjs';
 import { SHOW_TOOLS } from './show-tools.mjs';
 import { RISK_TOOLS } from './risk-control.mjs';
 import { GROW_TOOLS } from './grow-tools.mjs';
+import { GROW_USER_TOOLS } from './grow-user-tools.mjs';
 import { GROW_ADMIN_TOOLS } from './grow-admin-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
@@ -17,6 +18,7 @@ const GROUPS = [
   SHOW_TOOLS,
   RISK_TOOLS,
   GROW_TOOLS,
+  GROW_USER_TOOLS,
   ...(growAdminEnabled ? [GROW_ADMIN_TOOLS] : []),
 ];
 
