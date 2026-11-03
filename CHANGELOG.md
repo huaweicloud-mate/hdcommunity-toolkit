@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+### Changed — 管理面迁出（BREAKING）
+- **移除管理面能力**，迁至独立仓 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)：
+  - 工具：`hdcommunity_admin_*`（博客管理台）、`hdgrow_admin_*`（成长管理台）、`hdcommunity_admin_blog_risk_check`（内容风控）；
+  - 统一管理面登录/登出（`admin-session`）；
+  - Skill：`hd-blog-operator`、`hd-grow-admin`。
+- 本仓现只含 **用户面 + 展示面**：社区博客（写/发/评论/互动）、公开只读、成长中心展示面与业务侧。
+
 ## 0.2.0
 
 ### Added — 成长中心（HDGrowService）

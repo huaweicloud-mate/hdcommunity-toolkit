@@ -1,24 +1,16 @@
 // Tool registry: aggregates all tool groups and routes calls by name.
+//
+// hdcommunity-toolkit = 用户面 + 展示面（管理面已迁移到 hdcommunity-mng-toolkit）：
+//   hdcommunity_blog_* / draft_* / comment_* / user_* / file_*   社区用户面
+//   hdcommunity_show_*                                          公开只读
+//   hdgrow_*                                                    成长中心业务侧/展示面
 
 import { BLOG_TOOLS } from './blog-tools.mjs';
-import { ADMIN_TOOLS } from './admin-tools.mjs';
 import { SHOW_TOOLS } from './show-tools.mjs';
-import { RISK_TOOLS } from './risk-control.mjs';
 import { GROW_TOOLS } from './grow-tools.mjs';
-import { GROW_ADMIN_TOOLS } from './grow-admin-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
-// 管理台工具组默认 **关闭**（含内部账号登录/审批/生效）；
-// 显式开启：设置 HDGROW_ADMIN_ENABLED=1。
-const growAdminEnabled = process.env.HDGROW_ADMIN_ENABLED === '1';
-const GROUPS = [
-  BLOG_TOOLS,
-  ADMIN_TOOLS,
-  SHOW_TOOLS,
-  RISK_TOOLS,
-  GROW_TOOLS,
-  ...(growAdminEnabled ? [GROW_ADMIN_TOOLS] : []),
-];
+const GROUPS = [BLOG_TOOLS, SHOW_TOOLS, GROW_TOOLS];
 
 export const TOOL_DEFINITIONS = GROUPS.flatMap((g) => g.definitions);
 
