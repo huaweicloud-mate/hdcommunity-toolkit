@@ -3,8 +3,9 @@
 //   callBlog      -> community user-facing (/agent/blog/**), injects AK/SK
 //   callShow      -> public read-only (/agent/show/**), no auth
 //   callGrowShow  -> growth public read-only (/agent/show/grow/**), no auth
+//   callGrow      -> growth user face (/agent/user/grow/**), injects AK/SK (identity resolved by the gateway)
 //
-// (Business-side and management-console clients live in hdcommunity-mng-toolkit.)
+// (Business-side /agent/grow/** and management-console clients live in hdcommunity-mng-toolkit.)
 //
 // All responses are unwrapped from the backend's ApiResponse{code,message,data}
 // into the toolkit result shape (see errors.mjs).
@@ -91,6 +92,7 @@ export async function callShow(method, path, { query, body } = {}) {
 // ---------------------------------------------------------------------------
 // Growth center (HDGrowService) — separate base (context-path /api/v1/hdgrowservice).
 //   callGrowShow -> /agent/show/grow/**  public read-only, no auth
+//   callGrow     -> /agent/user/grow/**  user face, injects X-HW-AK/SK (gateway resolves identity)
 // ---------------------------------------------------------------------------
 
 const GROW_BASE_HINT =
@@ -141,4 +143,25 @@ async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}
 export async function callGrowShow(method, path, { query, body } = {}) {
   if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
   return unwrap(await doGrowRequest(path, { method, query, body }));
+}
+
+/**
+ * Growth user-face call (/agent/user/grow/**) — injects AK/SK headers per request.
+ * The gateway resolves the caller's identity and injects X-User-Id/X-User-Name, so a user
+ * can only reach their own data (unlike the operator-side /agent/grow/** endpoints).
+ */
+export async function callGrow(method, path, { query, body } = {}) {
+  if (!growBase()) return fail(CODES.CONFIG_MISSING, GROW_BASE_HINT);
+  const creds = loadCredentials();
+  if (!hasCredentials(creds)) {
+    return fail(CODES.AUTH_MISSING, '未配置 AK/SK：请设置 HW_ACCESS_KEY/HW_SECRET_KEY（或 ~/.config/huaweicloud/credentials.json）');
+  }
+  const headers = {
+    'X-HW-AK': creds.ak,
+    'X-HW-SK': creds.sk,
+    'X-HW-PROJECT-ID': creds.projectId || '',
+    'X-HW-REGION': creds.region || REGION,
+  };
+  if (creds.securityToken) headers['X-HW-Security-Token'] = creds.securityToken;
+  return unwrap(await doGrowRequest(path, { method, query, body, headers }));
 }
