@@ -10,15 +10,16 @@ export const REGION = process.env.HW_REGION || 'cn-north-4';
 export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 30000);
 
 // ---------------------------------------------------------------------------
-// Growth center (HDGrowService) — parallel capability to the community/blog side.
+// Growth center (HDGrowService) — display face only.
 //
 //   /agent/show/grow/**  public read-only (no auth)     -> callGrowShow
-//   /agent/grow/**       business (AK/SK, per request)   -> callGrow
-//   /agent/admin/grow/** management (Bearer)             -> callGrowAdmin
+//
+// Business (/agent/grow/**) and management (/agent/admin/grow/**) capabilities
+// live in hdcommunity-mng-toolkit.
 //
 // Base MUST be configured explicitly (shape: https://<gateway>/api/v1/hdgrowservice).
-// No default: growth has money-write tools, so we fail-fast instead of silently
-// hitting an environment（默认不再指向任何网关）。
+// No default: we fail-fast instead of silently hitting an environment
+// （默认不再指向任何网关）。
 // ---------------------------------------------------------------------------
 
 export function growBase() {

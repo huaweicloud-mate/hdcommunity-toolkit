@@ -2,7 +2,7 @@
 
 华为云社区业务的 **Agent 工具包** —— **用户面 + 展示面**（MCP 工具 + Skill），让 AI 编码助手以自然语言完成社区博客的**写/发/评论/互动**等操作。
 
-> **管理面**（博客/成长管理台：审核、上下线、置顶、统计、发积分/发券、涉钱配置变更单分级审批）已迁移到独立仓 **[hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)**。
+> **管理面/运营面**（博客与成长管理台：审核、上下线、置顶、统计，以及成长中心的查积分、发积分、发券、兑换、涉钱配置变更单分级审批）已迁移到独立仓 **[hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)**。本仓只保留普通用户可看/可用的能力。
 
 ## 安装
 
@@ -22,7 +22,7 @@ npx --yes hdcommunity-toolkit uninstall --target opencode
 |---|---|---|
 | 社区用户面 | `hdcommunity_blog_*` / `draft_*` / `comment_*` / `user_*` / `file_*` | 华为云 **AK/SK**（`HW_ACCESS_KEY`/`HW_SECRET_KEY`） |
 | 公开只读 | `hdcommunity_show_*` | 无 |
-| 成长中心 | `hdgrow_*`（展示 + 业务侧） | 展示无鉴权；业务侧 **AK/SK** |
+| 成长中心 | `hdgrow_*`（展示面） | 无（公开只读） |
 
 AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。
 
@@ -39,10 +39,9 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 `show_blog_list` / `show_blog_detail`。
 
 ### 成长中心（`hdgrow_*`）
-展示（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`；
-业务侧（AK/SK）：`hdgrow_points_query` / `hdgrow_server_tasks` / `hdgrow_server_prizes` / `hdgrow_points_add` / `hdgrow_prize_exchange` / `hdgrow_issue_coupon`。
+展示（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`。
 
-> 涉钱写操作默认 `dry_run` 预演 + 一次性 `confirm_token` + 高风险阈值 + 强制 `biz_id`。
+> 查个人积分、个人任务完成状态、发积分、发券、兑换属运营侧能力，统一由 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit) 提供。
 
 ## 配置（环境变量）
 
@@ -51,7 +50,6 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
 | `HDGROW_BASE` | **必填（无默认）** | 成长服务地址（如 `https://<网关>/api/v1/hdgrowservice`）；未配置 → `CONFIG_MISSING` |
 | `HW_REGION` | `cn-north-4` | 区域 |
-| `HDGROW_RISK_FACE_AMOUNT_MAX` / `HDGROW_RISK_QUANTITY_MAX` | `100` / `10` | 涉钱高风险阈值 |
 
 ## 内置 Skill
 
@@ -60,7 +58,6 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 | `hd-blog-author` | 开发者「写 → 发 → 查审核 → 看数据」 |
 | `hd-blog-promote` | 博客 → 各平台推广文案 |
 | `hd-experience` | 体验案例上报 |
-| `hd-grow-operator` | 成长中心业务侧（查/发积分、发券，涉钱强制预演） |
 
 ## 开发
 
