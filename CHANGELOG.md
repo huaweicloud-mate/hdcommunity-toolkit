@@ -8,6 +8,7 @@
   - Skill：`hd-grow-operator`；
   - 配套的 `callGrow`、`GROW_BIZ` 端点常量与涉钱防护代码。
 - 本仓只保留 **普通用户可看/可用** 的能力：社区博客（写/发/评论/互动）、公开只读、成长中心展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）。
+- `HDGROW_BASE` 对展示面改为**测试网关默认值**（可用环境变量覆盖）；业务侧迁至 mng 仓后仍保持必填。
 
 ## 0.3.0
 

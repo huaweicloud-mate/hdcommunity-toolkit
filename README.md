@@ -48,7 +48,7 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
-| `HDGROW_BASE` | **必填（无默认）** | 成长服务地址（如 `https://<网关>/api/v1/hdgrowservice`）；未配置 → `CONFIG_MISSING` |
+| `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（本包仅展示面公开只读；现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 
 ## 内置 Skill

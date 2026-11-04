@@ -15,13 +15,15 @@ export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 3
 //   /agent/show/grow/**  public read-only (no auth)     -> callGrowShow
 //
 // Business (/agent/grow/**) and management (/agent/admin/grow/**) capabilities
-// live in hdcommunity-mng-toolkit.
+// live in hdcommunity-mng-toolkit (where the base stays mandatory: money writes
+// must never silently target an environment).
 //
-// Base MUST be configured explicitly (shape: https://<gateway>/api/v1/hdgrowservice).
-// No default: we fail-fast instead of silently hitting an environment
-// （默认不再指向任何网关）。
+// Here only public reads remain, so a default is safe: test gateway by default,
+// override with HDGROW_BASE (prod: https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice).
 // ---------------------------------------------------------------------------
 
+const DEFAULT_GROW_BASE = 'https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice';
+
 export function growBase() {
-  return process.env.HDGROW_BASE || '';
+  return process.env.HDGROW_BASE || DEFAULT_GROW_BASE;
 }

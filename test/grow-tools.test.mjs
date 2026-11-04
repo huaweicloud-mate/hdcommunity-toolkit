@@ -5,6 +5,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { callTool, TOOL_DEFINITIONS } from '../src/tools/index.mjs';
+import { growBase } from '../src/config.mjs';
+
+const DEFAULT_GROW_BASE = 'https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice';
 
 const GROW_NAMES = ['hdgrow_task_list', 'hdgrow_task_categories', 'hdgrow_prize_list'];
 
@@ -38,13 +41,22 @@ test('grow: removed business tools are unknown to the router', async () => {
   assert.match(r.error.message, /未知工具/);
 });
 
-test('grow: missing HDGROW_BASE fails fast (no implicit environment)', async () => {
+test('grow: HDGROW_BASE defaults to the test gateway when unset', () => {
   const prev = process.env.HDGROW_BASE;
   delete process.env.HDGROW_BASE;
   try {
-    const r = await callTool('hdgrow_task_list', {});
-    assert.equal(r.ok, false);
-    assert.equal(r.error.code, 'CONFIG_MISSING');
+    assert.equal(growBase(), DEFAULT_GROW_BASE);
+  } finally {
+    if (prev === undefined) delete process.env.HDGROW_BASE;
+    else process.env.HDGROW_BASE = prev;
+  }
+});
+
+test('grow: HDGROW_BASE env overrides the default', () => {
+  const prev = process.env.HDGROW_BASE;
+  process.env.HDGROW_BASE = 'https://prod.example/api/v1/hdgrowservice';
+  try {
+    assert.equal(growBase(), 'https://prod.example/api/v1/hdgrowservice');
   } finally {
     if (prev === undefined) delete process.env.HDGROW_BASE;
     else process.env.HDGROW_BASE = prev;
