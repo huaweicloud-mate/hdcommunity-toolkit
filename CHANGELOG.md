@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+### Changed — 运营面迁出（BREAKING）
+- **移除成长中心业务侧能力**，与既有管理面一并归入 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)：
+  - 工具：`hdgrow_points_query` / `hdgrow_server_tasks` / `hdgrow_server_prizes` / `hdgrow_points_add` / `hdgrow_prize_exchange` / `hdgrow_issue_coupon`；
+  - Skill：`hd-grow-operator`；
+  - 配套的 `callGrow`、`GROW_BIZ` 端点常量与涉钱防护代码。
+- 本仓只保留 **普通用户可看/可用** 的能力：社区博客（写/发/评论/互动）、公开只读、成长中心展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）。
+
 ## 0.3.0
 
 ### Changed — 管理面迁出（BREAKING）
