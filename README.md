@@ -45,6 +45,8 @@ npx --yes hdcommunity-toolkit install
 
 `uninstall` 也支持省略 `--target`：按"已安装本工具包 Skill 的 Agent"判断，同样只在唯一命中时执行，0 个或多个均报错并列出可选值。
 
+`update` 省略 `--target` 时使用与 `uninstall` 相同的检测口径（只认已安装本工具包 Skill 的 Agent）：唯一命中即刷新该 Agent；未安装任何 Agent 时报错退出（exit 1），**不会**为仅存在配置目录、从未安装本工具包的 Agent 创建目录。
+
 ### 逐个 Agent 安装
 
 每个小节给出 `install` / `doctor` / `status` / `update` / `uninstall` 全套命令。**安装后需重启会话**，MCP 工具与 Skill 才会被加载。
@@ -56,10 +58,12 @@ npx --yes hdcommunity-toolkit install
 | `install --target <agent>` | 复制 Skill 到该 Agent 的 Skill 目录，并注册 MCP server（或打印片段） |
 | `doctor [--target <agent>]` | 自检：Node 版本、Skill 源、AK/SK 是否就绪、目标 Agent 的 Skill 覆盖、MCP 配置状态；不打印任何凭据 |
 | `status` | 列出全部内置 Agent 的安装状态与目录 |
-| `update --target <agent>` | 按当前 CLI 版本刷新已复制 Skill（升级用 `@latest`） |
+| `update --target <agent>` | 按当前 CLI 版本刷新已复制 Skill（升级用 `@latest`）；省略 `--target` 时只刷新已安装的 Agent |
 | `uninstall --target <agent>` | 移除该 Agent 下由本工具包复制的 Skill（OpenCode 额外清理 `opencode.json` 中的 MCP 条目） |
 
 > `doctor` 的 MCP 检查范围：**仅 OpenCode 自动校验**（读取 `opencode.json`/`opencode.jsonc` 的 `mcp.hdcommunity-toolkit`，缺失即 `MCP MISSING` 并使 `doctor` 失败）；其余 Agent 固定显示 `MCP manual snippet`，表示需按安装时打印的片段手工注册，不影响 `doctor` 退出码。
+>
+> `doctor` 省略 `--target` 时只汇总已安装的 Agent 并检查运行环境（Node、Skill 源、认证），未安装任何 Agent 时打印提示但退出码仍为 0（环境本身无问题）；指定 `--target` 时该 Agent 未安装则 `doctor` 退出码为 1。
 
 ### OpenCode
 

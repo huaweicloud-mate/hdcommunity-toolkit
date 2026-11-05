@@ -51,7 +51,7 @@ README 安装节只有一条 `npx --yes hdcommunity-toolkit install --target ope
 README 每个 Agent 小节统一给出 `doctor / status / update / uninstall`。二者当前缺失，本 Issue 补齐：
 
 - `doctor [--target <agent>]`：Node 版本、Skill 源、认证（AK/SK 环境变量或凭据文件，仅报告是否就绪，不打印任何凭据）、目标 Agent 的 Skill 与 MCP 配置就绪情况；必需项不满足时 exit 1。
-- `update [--target <agent>]`：按当前运行版本刷新已安装 Skill（等价于重装技能部分）；升级到新版本通过 `npx --yes hdcommunity-toolkit@latest` 触发，命令输出中说明这一点。
+- `update [--target <agent>]`：按当前运行版本刷新已安装 Skill（等价于重装技能部分）；省略 `--target` 时只刷新"已安装本工具包 Skill 的 Agent"（与 `uninstall` 同一检测口径），未安装任何 Agent 时报错退出且不落盘；升级到新版本通过 `npx --yes hdcommunity-toolkit@latest` 触发，命令输出中说明这一点。
 
 ## 7. 不在范围内
 
@@ -61,10 +61,10 @@ README 每个 Agent 小节统一给出 `doctor / status / update / uninstall`。
 
 ## 8. 验收标准
 
-- [ ] README 顶部列出全部 10 个内置 Agent 与 `all`
-- [ ] 每个 Agent 独立小节：install + 重启提醒 + `doctor / status / update / uninstall`
-- [ ] 省略 `--target` 的行为有文档且已实现（1 个自动、0 或多数报错并列出可选值）
-- [ ] dsh 小节写明 MCP 注册现状并关联 #18 / PR #22
-- [ ] `status` / `all` 覆盖 README 列出的全部 Agent（含 `codex-desktop`）
-- [ ] README 中每条命令/路径与 `src/setup-cli.mjs` 行为一致
-- [ ] `npm test`、`npm run smoke` 通过
+- [x] README 顶部列出全部 10 个内置 Agent 与 `all`
+- [x] 每个 Agent 独立小节：install + 重启提醒 + `doctor / status / update / uninstall`
+- [x] 省略 `--target` 的行为有文档且已实现（1 个自动、0 或多数报错并列出可选值）
+- [x] dsh 小节写明 MCP 注册现状并关联 #18 / PR #22
+- [x] `status` / `all` 覆盖 README 列出的全部 Agent（含 `codex-desktop`）
+- [x] README 中每条命令/路径与 `src/setup-cli.mjs` 行为一致
+- [x] `npm test`、`npm run smoke` 通过

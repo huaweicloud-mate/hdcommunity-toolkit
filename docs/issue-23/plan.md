@@ -23,10 +23,11 @@ const ALL_TARGET_NAMES = [...SUPPORTED_TARGETS, 'all']; // 另加 generic
 
 ```
 requested = args.target
+  --target 缺值 → 报错 + 列出可选值 (exit 1)
   有值 → 归一化小写；all/generic/SUPPORTED_TARGETS 命中即返回；否则报错 + 列出可选值 (exit 1)
   无值 → detect(mode)
-        mode='install'   : 检测各 Agent 根目录是否存在
-        mode='uninstall' : 检测各 Agent 目录下是否已有本包 Skill
+        mode='install'           : 检测各 Agent 根目录是否存在（首次安装）
+        mode='update'/'uninstall': 检测各 Agent 目录下是否已有本包 Skill（只动已安装者）
         命中 1 → 打印 [auto] detected agent: X，返回 X
         命中 0 → 报错 + 列出可选值 (exit 1)
         命中 >1 → 报错"拒绝猜测" + 已检测列表 + 可选值 (exit 1)
@@ -54,7 +55,7 @@ requested = args.target
   - 认证：`HW_ACCESS_KEY`+`HW_SECRET_KEY` 环境变量对、或 `~/.config/huaweicloud/credentials.json`、或 `~/.hcloud/config.json` 存在——只报"已配置/未配置"，绝不读取或打印凭据内容
   - 指定 target 时：Skill 安装数 / 总数、opencode MCP 条目是否已注册；未安装 → exit 1
   - 未指定 target 时：汇总全部已安装的 target
-- `update [--target X]`：复用 install 的 Skill 复制路径刷新已安装内容，输出提示"升级到新版本请用 `npx --yes hdcommunity-toolkit@latest update ...`"。
+- `update [--target X]`：复用 install 的 Skill 复制路径刷新已安装内容，输出提示"升级到新版本请用 `npx --yes hdcommunity-toolkit@latest update ...`"。省略 `--target` 时使用与 `uninstall` 相同的检测口径（只认已安装本包 Skill 的 Agent），未安装时报错退出且不落盘。
 
 ### 2.4 保持不变的契约
 
