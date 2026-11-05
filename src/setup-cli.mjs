@@ -33,7 +33,8 @@ const SUPPORTED_TARGETS = [
   'atomcode',
 ];
 // Accepted `--target` values that are not agents: `all` installs every built-in
-// agent, `generic` only prints the portable MCP snippet.
+// agent, `generic` copies the skills to `~/.generic/skills` and prints the
+// portable MCP snippet.
 const NON_AGENT_TARGETS = ['generic', 'all'];
 const VALID_TARGETS = [...SUPPORTED_TARGETS, ...NON_AGENT_TARGETS];
 
@@ -250,14 +251,22 @@ function status() {
 /**
  * Which agents look present on this machine.
  * `install` probes the agent's config root (the agent is there, ready to receive
- * skills); `uninstall` probes for skills this package previously copied, so a
- * never-installed agent is never targeted. Filesystem only — no external
- * commands, no guessing binary names.
+ * skills); `update` and `uninstall` probe for skills this package previously
+ * copied, so a never-installed agent is never written to or cleaned up.
+ * Filesystem only — no external commands, no guessing binary names.
  */
 function detectTargets(mode) {
-  if (mode === 'uninstall') return SUPPORTED_TARGETS.filter((t) => installedSkillCount(t) > 0);
-  return SUPPORTED_TARGETS.filter((t) => existsSync(agentRootFor(t)));
+  if (mode === 'install') return SUPPORTED_TARGETS.filter((t) => existsSync(agentRootFor(t)));
+  return SUPPORTED_TARGETS.filter((t) => installedSkillCount(t) > 0);
 }
+
+// Verb used when auto-detection finds nothing / too much and the user has to
+// name the target explicitly; keeps the hint in the wording of the command run.
+const EXPLICIT_HINTS = {
+  install: 'Install explicitly',
+  update: 'Re-run update explicitly',
+  uninstall: 'Uninstall explicitly',
+};
 
 /**
  * Resolve the target for install/uninstall/update/doctor.
@@ -266,6 +275,12 @@ function detectTargets(mode) {
  */
 function resolveTarget(args, mode) {
   const requested = args.target;
+  if (args.targetMissing) {
+    console.error('Missing value for --target');
+    console.error(`Valid targets: ${VALID_TARGETS.join(', ')}`);
+    process.exitCode = 1;
+    return null;
+  }
   if (requested !== undefined) {
     const value = String(requested).toLowerCase();
     if (VALID_TARGETS.includes(value)) return value;
@@ -281,9 +296,9 @@ function resolveTarget(args, mode) {
     return detected[0];
   }
   if (detected.length === 0) {
-    const what = mode === 'uninstall' ? 'No installed agent detected' : 'No supported agent detected';
+    const what = mode === 'install' ? 'No supported agent detected' : 'No installed agent detected';
     console.error(`${what}: refusing to guess.`);
-    console.error(`${mode === 'uninstall' ? 'Uninstall' : 'Install'} explicitly with --target: ${VALID_TARGETS.join(', ')}`);
+    console.error(`${EXPLICIT_HINTS[mode] || 'Run again'} with --target: ${VALID_TARGETS.join(', ')}`);
     process.exitCode = 1;
     return null;
   }
@@ -361,8 +376,14 @@ function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--target') args.target = argv[++i];
-    else if (a === '--help' || a === '-h') args.help = true;
+    if (a === '--target') {
+      const value = argv[i + 1];
+      if (value === undefined) args.targetMissing = true;
+      else {
+        args.target = value;
+        i++;
+      }
+    } else if (a === '--help' || a === '-h') args.help = true;
     else args._.push(a);
   }
   return args;
@@ -373,17 +394,18 @@ function printHelp(log = console.log) {
 
 Usage:
   npx ${PKG_NAME} install   [--target <agent|all>]    omit --target to auto-detect
-  npx ${PKG_NAME} uninstall [--target <agent|all>]    omit --target to auto-detect
-  npx ${PKG_NAME} update    [--target <agent|all>]
+  npx ${PKG_NAME} uninstall [--target <agent|all>]    omit --target to auto-detect installed agents
+  npx ${PKG_NAME} update    [--target <agent|all>]    omit --target to refresh installed agents
   npx ${PKG_NAME} status
   npx ${PKG_NAME} doctor    [--target <agent>]
   npx ${PKG_NAME} help
 
 Targets: ${VALID_TARGETS.join(', ')}
 
-When --target is omitted the installer auto-detects the agent from its config
-directory: exactly one detected agent is used; none or several is an error that
-lists the valid targets (it never guesses).`);
+When --target is omitted the installer auto-detects the target: install looks for
+the agent's config directory, update and uninstall look for agents that already
+have this package's skills. Exactly one match is used; none or several is an
+error that lists the valid targets (it never guesses).`);
 }
 
 function main() {
@@ -404,7 +426,7 @@ function main() {
     }
     case 'update': {
       if (args.help) return printHelp();
-      const target = resolveTarget(args, 'install');
+      const target = resolveTarget(args, 'update');
       if (target) update(target);
       break;
     }
