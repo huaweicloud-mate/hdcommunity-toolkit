@@ -365,6 +365,32 @@ test('update: refreshes skills that were removed from an installed agent', () =>
   assert.match(out, /@latest/);
 });
 
+test('update --target all: refreshes only the agents that already have the skills', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'atomcode'], home).code, 0);
+  rmSync(join(skillsDirOf(home, 'atomcode'), 'hd-blog-author'), { recursive: true, force: true });
+
+  const { code, out } = runBin(['update', '--target', 'all'], home);
+  assert.equal(code, 0, out);
+  assertSkillsInstalled(home, 'atomcode');
+  assert.match(out, /\[atomcode\] refreshed/);
+
+  // "all" must not create directories for agents that were never installed.
+  for (const t of TARGETS.filter((x) => x !== 'atomcode')) {
+    assert.ok(!existsSync(skillsDirOf(home, t)), `update --target all must not create ${t} skills dir`);
+  }
+});
+
+test('update --target all: does nothing when no agent is installed', () => {
+  const home = makeHome();
+  const { code, out } = runBin(['update', '--target', 'all'], home);
+  assert.equal(code, 0, out);
+  assert.match(out, /no installed agent/i);
+  for (const t of TARGETS) {
+    assert.ok(!existsSync(join(home, `.${t}`)), `update --target all must not create ${t} dir`);
+  }
+});
+
 test('unknown command: exits 1 and prints help', () => {
   const home = makeHome();
   const { code, err } = runBin(['frobnicate'], home);
