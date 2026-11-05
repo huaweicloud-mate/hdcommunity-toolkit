@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+### Added — 错误可观测性
+- `UPSTREAM_ERROR` 透出请求 method + path + HTTP 状态（body 截断、不回显敏感头），上游故障可直接定位（#17，PR #19）。
+
+### Fixed — 安装器
+- `install/uninstall/status` 携带 `--help` 时只打印帮助，不再误触发真实安装/卸载（#15，PR #20）。
+- `uninstall --target opencode` 对称清理 MCP 配置条目；保留用户改写并提示残留路径（#16，PR #21）。
+
 ## 0.4.1
 
 ### Changed — 用户面包去管理台引用
