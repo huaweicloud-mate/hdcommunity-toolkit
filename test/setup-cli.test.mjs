@@ -6,11 +6,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const CLI = fileURLToPath(new URL('../src/setup-cli.mjs', import.meta.url));
 const BIN = fileURLToPath(new URL('../bin/setup.cjs', import.meta.url));
 
@@ -370,4 +371,21 @@ test('unknown command: exits 1 and prints help', () => {
   assert.equal(code, 1);
   assert.match(err, /unknown command/i);
   assert.match(err, /Targets:/);
+});
+
+// The README is the user-facing contract; keep it tied to the same target list and
+// directory mapping the CLI uses so a half-added target cannot ship again.
+test('README: documents every built-in target with its directory and full command set', () => {
+  const readme = readFileSync(join(ROOT, 'README.md'), 'utf8');
+  for (const t of TARGETS) {
+    assert.match(readme, new RegExp(`install --target ${t}\\b`), `README must show install --target ${t}`);
+    assert.match(readme, new RegExp(`uninstall --target ${t}\\b`), `README must show uninstall --target ${t}`);
+    assert.match(readme, new RegExp(`doctor\\s+--target ${t}\\b`), `README must show doctor --target ${t}`);
+
+    const documentedDir = t === 'dsh' ? '$DSH_HOME/skills' : skillsDirOf('~', t);
+    assert.ok(readme.includes(documentedDir), `README must document ${t} skills dir ${documentedDir}`);
+  }
+  for (const cmd of ['status', 'update', 'doctor']) {
+    assert.match(readme, new RegExp(`hdcommunity-toolkit ${cmd}`), `README must document the ${cmd} command`);
+  }
 });
