@@ -3,10 +3,7 @@
 // Scope:
 //   A. public read-only  /agent/show/grow/**  (no auth)  -> task_list / task_categories / prize_list
 //
-// The business face (/agent/grow/** — points query, per-user task status, points issue,
-// prize exchange, coupon issue) is an OPERATOR capability and has been moved out of this
-// user-facing toolkit. It lives in hdcommunity-mng-toolkit alongside the other management
-// capabilities, so a normal user's agent surface no longer exposes points/coupon writes.
+// Operator-facing growth capabilities are not part of this package.
 
 import { callGrowShow } from './http-client.mjs';
 import { GROW_SHOW } from './grow-endpoints.mjs';

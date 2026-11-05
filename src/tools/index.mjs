@@ -1,6 +1,6 @@
 // Tool registry: aggregates all tool groups and routes calls by name.
 //
-// hdcommunity-toolkit = 用户面 + 展示面（管理面/运营面已迁移到 hdcommunity-mng-toolkit）：
+// hdcommunity-toolkit = 用户面 + 展示面（仅普通用户能力）：
 //   hdcommunity_blog_* / draft_* / comment_* / user_* / file_*   社区用户面
 //   hdcommunity_show_*                                          公开只读
 //   hdgrow_*                                                    成长中心展示面（公开只读）

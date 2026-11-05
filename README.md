@@ -2,7 +2,7 @@
 
 华为云社区业务的 **Agent 工具包** —— **用户面 + 展示面**（MCP 工具 + Skill），让 AI 编码助手以自然语言完成社区博客的**写/发/评论/互动**等操作。
 
-> **管理面/运营面**（博客与成长管理台：审核、上下线、置顶、统计，以及成长中心的查积分、发积分、发券、兑换、涉钱配置变更单分级审批）已迁移到独立仓 **[hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)**。本仓只保留普通用户可看/可用的能力。
+> 本工具包只包含**普通用户**可看/可用的能力。
 
 ## 安装
 
@@ -47,14 +47,12 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 签到：`user_sign_in` / `user_sign_in_status`；
 自助兑换：`user_prize_exchange`（涉钱，默认预演 + `confirm_token` + 强制 `biz_id`）。
 
-> 发积分、发券、代他人查询/兑换属运营侧能力，统一由 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit) 提供。
-
 ## 配置（环境变量）
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
-| `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（本包仅展示面公开只读；现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
+| `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `HDGROW_RISK_QUANTITY_MAX` | `10` | 自助兑换单次数量高风险阈值 |
 

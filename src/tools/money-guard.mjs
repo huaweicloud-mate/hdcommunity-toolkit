@@ -4,9 +4,7 @@
 //   1. dry_run preview (default TRUE) — never writes; returns params + money + risk + a confirm_token
 //   2. one-time confirm_token bound to the exact request body (HMAC, TTL 5min) — rejects tampered params
 //   3. high-risk threshold gate — over limit requires confirm_high_risk=true + a non-empty reason
-//   4. mandatory biz_id idempotency is enforced by the calling tool
-//
-// Operator-side business writes live in hdcommunity-mng-toolkit and bring their own guard copy there.
+// 4. mandatory biz_id idempotency is enforced by the calling tool
 
 import crypto from 'node:crypto';
 import { ok, fail, CODES } from '../errors.mjs';
