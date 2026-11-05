@@ -18,8 +18,8 @@ Guides a developer through authoring a blog post on Huawei Cloud Community: prep
   **不要**使用 `#`、`**粗体**`、`![alt](url)` 等 Markdown 语法——页面按 HTML 渲染，Markdown 会原样显示成文本。
 - **图片与链接必须使用完整绝对地址**（不要用相对路径）。`hdcommunity_file_upload` 返回的是相对路径：
   - 返回：`/api/v1/blogservice/file/2bccf386….png`
-  - 正文/封面要写成：`https://opentest-dataset.huaweicloud.com/api/v1/blogservice/file/2bccf386….png`
-  - 即：绝对地址 = 工具箱配置 `HDCOMMUNITY_BASE` 的 **origin** + 返回的相对路径。
+  - 正文/封面要写成：`<backend-base>/file/2bccf386….png`
+  - 即：绝对地址 = `<backend-base>`（工具箱配置 `HDCOMMUNITY_BASE`，未配置时取默认现网地址）的 **origin** + 返回的相对路径。测试环境需显式设置 `HDCOMMUNITY_BASE` 指向对应环境。
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ Guides a developer through authoring a blog post on Huawei Cloud Community: prep
 ```html
 <h1>标题</h1>
 <p>正文段落，使用 <strong>粗体</strong>。</p>
-<p><img src="https://opentest-dataset.huaweicloud.com/api/v1/blogservice/file/xxx.png" alt="图片" /></p>
+<p><img src="<backend-base>/file/xxx.png" alt="图片" /></p>
 <p>结尾段落。</p>
 ```
 

@@ -291,7 +291,7 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
+| `HDCOMMUNITY_BASE` | `https://open-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址（现网默认；其他环境显式指定完整 base，含 context-path） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
 | `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |
