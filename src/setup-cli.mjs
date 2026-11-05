@@ -343,7 +343,12 @@ function doctor(target) {
 /** Refresh the skills bundled with this CLI version (upgrading = npx @latest). */
 function update(target) {
   if (target === 'all') {
-    for (const t of SUPPORTED_TARGETS) update(t);
+    const installed = SUPPORTED_TARGETS.filter((t) => installedSkillCount(t) > 0);
+    if (installed.length === 0) {
+      console.log(`no installed agent detected — run: npx --yes ${PKG_NAME} install --target <agent|all>`);
+      return;
+    }
+    for (const t of installed) update(t);
     return;
   }
   install(target);
