@@ -252,6 +252,16 @@ test('install: without --target refuses to guess when several agents are detecte
   assert.match(err, /--target/);
 });
 
+test('install: codex/codex-desktop sharing ~/.codex is reported as ambiguous, not guessed', () => {
+  const home = makeHome();
+  mkdirSync(join(home, '.codex'), { recursive: true });
+  const { code, err } = runBin(['install'], home);
+  assert.equal(code, 1);
+  assert.match(err, /multiple agents detected: codex, codex-desktop/i);
+  assert.match(err, /share ~\/\.codex/);
+  assert.match(err, /--target codex-desktop/);
+});
+
 test('install: an unknown --target fails and lists the valid values', () => {
   const home = makeHome();
   const { code, err } = runBin(['install', '--target', 'bogus'], home);
