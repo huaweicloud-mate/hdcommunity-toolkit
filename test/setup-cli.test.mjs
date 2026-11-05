@@ -148,3 +148,216 @@ test('setup-cli: uninstall --target codex behavior is unchanged (no MCP cleanup)
     rmSync(home, { recursive: true, force: true });
   }
 });
+
+// --- Multi-agent installer surface (README contract as tests) ---
+
+const SKILLS = ['hd-blog-author', 'hd-blog-promote', 'hd-experience'];
+
+// Deliberately restated here: if src/setup-cli.mjs drops a target, this list keeps
+// the expectation independent instead of importing the constant under test.
+const TARGETS = [
+  'opencode',
+  'codex',
+  'codex-desktop',
+  'codearts',
+  'codearts-work',
+  'workbuddy',
+  'dsh',
+  'hermes',
+  'openclaw',
+  'atomcode',
+];
+
+function makeHome() {
+  return mkdtempSync(join(tmpdir(), 'hdct-home-'));
+}
+
+function runBin(args, home, extraEnv = {}) {
+  const env = {
+    ...process.env,
+    HOME: home,
+    USERPROFILE: home,
+    DSH_HOME: join(home, '.dsh'),
+    ...extraEnv,
+  };
+  delete env.NODE_ENV;
+  const r = spawnSync(process.execPath, [BIN, ...args], { env, encoding: 'utf8' });
+  return { code: r.status, out: r.stdout || '', err: r.stderr || '' };
+}
+
+// Skills destination each target must use (mirrors the README table).
+function skillsDirOf(home, target) {
+  const map = {
+    opencode: join(home, '.config', 'opencode', 'skills'),
+    codex: join(home, '.codex', 'skills'),
+    'codex-desktop': join(home, '.codex', 'skills'),
+    codearts: join(home, '.codeartsdoer', 'skills'),
+    'codearts-work': join(home, '.codeartswork', 'skills'),
+    workbuddy: join(home, '.workbuddy', 'skills'),
+    dsh: join(home, '.dsh', 'skills'),
+    hermes: join(home, '.hermes', 'skills'),
+    openclaw: join(home, '.openclaw', 'skills'),
+    atomcode: join(home, '.atomcode', 'skills'),
+  };
+  return map[target];
+}
+
+function assertSkillsInstalled(home, target) {
+  const dest = skillsDirOf(home, target);
+  for (const s of SKILLS) {
+    assert.ok(existsSync(join(dest, s, 'SKILL.md')), `${target}: missing ${s} in ${dest}`);
+  }
+}
+
+function helpTargets(out) {
+  const line = out.split('\n').find((l) => l.startsWith('Targets:'));
+  assert.ok(line, `help output has no Targets line:\n${out}`);
+  return line.replace(/^Targets:\s*/, '').split(',').map((s) => s.trim());
+}
+
+test('help: lists every built-in target, all, and the auto-detect behaviour', () => {
+  const home = makeHome();
+  const { code, out } = runBin(['--help'], home);
+  assert.equal(code, 0);
+  assert.deepEqual(helpTargets(out), [...TARGETS, 'generic', 'all']);
+  assert.match(out, /auto-detect/i, 'help must document the omitted --target behaviour');
+});
+
+test('install: without --target installs into the single detected agent', () => {
+  const home = makeHome();
+  mkdirSync(join(home, '.workbuddy'), { recursive: true });
+  const { code, out } = runBin(['install'], home);
+  assert.equal(code, 0, out);
+  assert.match(out, /\[auto\] detected agent: workbuddy/);
+  assertSkillsInstalled(home, 'workbuddy');
+});
+
+test('install: without --target fails and lists targets when nothing is detected', () => {
+  const home = makeHome();
+  const { code, err } = runBin(['install'], home);
+  assert.equal(code, 1);
+  assert.match(err, /no supported agent detected/i);
+  for (const t of TARGETS) assert.ok(err.includes(t), `error must list ${t}`);
+});
+
+test('install: without --target refuses to guess when several agents are detected', () => {
+  const home = makeHome();
+  mkdirSync(join(home, '.workbuddy'), { recursive: true });
+  mkdirSync(join(home, '.atomcode'), { recursive: true });
+  const { code, err } = runBin(['install'], home);
+  assert.equal(code, 1);
+  assert.match(err, /multiple agents detected/i);
+  assert.match(err, /workbuddy/);
+  assert.match(err, /atomcode/);
+  assert.match(err, /--target/);
+});
+
+test('install: an unknown --target fails and lists the valid values', () => {
+  const home = makeHome();
+  const { code, err } = runBin(['install', '--target', 'bogus'], home);
+  assert.equal(code, 1);
+  assert.match(err, /unknown --target: bogus/i);
+  for (const t of TARGETS) assert.ok(err.includes(t), `error must list ${t}`);
+});
+
+test('install: every built-in target lands its skills in the documented directory', () => {
+  for (const t of TARGETS) {
+    const home = makeHome();
+    const { code, out } = runBin(['install', '--target', t], home);
+    assert.equal(code, 0, `${t}: ${out}`);
+    assertSkillsInstalled(home, t);
+  }
+});
+
+test('install --target all: covers every built-in target', () => {
+  const home = makeHome();
+  const { code, out } = runBin(['install', '--target', 'all'], home);
+  assert.equal(code, 0, out);
+  for (const t of TARGETS) assertSkillsInstalled(home, t);
+});
+
+test('status: reports every built-in target, including codex-desktop', () => {
+  const home = makeHome();
+  mkdirSync(join(home, '.workbuddy'), { recursive: true });
+  mkdirSync(join(home, '.atomcode'), { recursive: true });
+  assert.equal(runBin(['install', '--target', 'workbuddy'], home).code, 0);
+  const { code, out } = runBin(['status'], home);
+  assert.equal(code, 0);
+  for (const t of TARGETS) {
+    assert.match(out, new RegExp(`^\\s+${t}\\s`, 'm'), `status must list ${t}:\n${out}`);
+  }
+  assert.match(out, /^\s+workbuddy\s+installed/m);
+  assert.match(out, /^\s+atomcode\s+-\s/m);
+});
+
+test('uninstall: without --target removes the single installed agent and then reports none', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'hermes'], home).code, 0);
+  const first = runBin(['uninstall'], home);
+  assert.equal(first.code, 0, first.err);
+  assert.match(first.out, /\[auto\] detected agent: hermes/);
+  assert.ok(!existsSync(join(skillsDirOf(home, 'hermes'), 'hd-blog-author')));
+
+  const second = runBin(['uninstall'], home);
+  assert.equal(second.code, 1);
+  assert.match(second.err, /no installed agent detected/i);
+});
+
+test('doctor: reports node/skills/auth without leaking credentials', () => {
+  const home = makeHome();
+  const { code, out, err } = runBin(['doctor'], home, {
+    HW_ACCESS_KEY: 'AK-SENTINEL-VALUE',
+    HW_SECRET_KEY: 'SK-SENTINEL-VALUE',
+  });
+  assert.equal(code, 0, err);
+  assert.match(out, /Node\.js/);
+  assert.match(out, /skills source/);
+  assert.match(out, /auth/);
+  assert.ok(!out.includes('AK-SENTINEL-VALUE'));
+  assert.ok(!out.includes('SK-SENTINEL-VALUE'));
+  assert.ok(!err.includes('SK-SENTINEL-VALUE'));
+});
+
+test('doctor --target: fails for an agent that is not installed', () => {
+  const home = makeHome();
+  const { code, out } = runBin(['doctor', '--target', 'atomcode'], home);
+  assert.equal(code, 1);
+  assert.match(out, /atomcode/);
+  assert.match(out, /0\/3|not installed/i);
+});
+
+test('doctor --target: passes once the agent is installed and its MCP entry is present', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'opencode'], home).code, 0);
+  const { code, out } = runBin(['doctor', '--target', 'opencode'], home);
+  assert.equal(code, 0, out);
+  assert.match(out, /3\/3/);
+  assert.match(out, /MCP\s+OK/);
+});
+
+test('doctor --target opencode: flags a missing MCP entry', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'opencode'], home).code, 0);
+  writeFileSync(join(home, '.config', 'opencode', 'opencode.json'), '{}');
+  const { code, out } = runBin(['doctor', '--target', 'opencode'], home);
+  assert.equal(code, 1);
+  assert.match(out, /MCP\s+MISSING/);
+});
+
+test('update: refreshes skills that were removed from an installed agent', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'atomcode'], home).code, 0);
+  rmSync(join(skillsDirOf(home, 'atomcode'), 'hd-blog-author'), { recursive: true, force: true });
+  const { code, out } = runBin(['update', '--target', 'atomcode'], home);
+  assert.equal(code, 0, out);
+  assertSkillsInstalled(home, 'atomcode');
+  assert.match(out, /@latest/);
+});
+
+test('unknown command: exits 1 and prints help', () => {
+  const home = makeHome();
+  const { code, err } = runBin(['frobnicate'], home);
+  assert.equal(code, 1);
+  assert.match(err, /unknown command/i);
+  assert.match(err, /Targets:/);
+});
