@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0
+
+### Added — dsh 自动注册
+- `install --target dsh` 自动写入 cordis.patch.yml MCP 注册：按 id 幂等、HDGROW_BASE 缺失 fail-fast、uninstall 同步移除托管块（#18，PR #22）。
+
+### Added — README 多 Agent 支持
+- SUPPORTED_TARGETS 单一事实源，省略 `--target` 自动检测；README 重写为逐 Agent 安装流程（#23，PR #24）。
+
+### Fixed — 默认域名
+- BACKEND_BASE 兜底默认切换为现网 `open-dataset.huaweicloud.com`，`HDCOMMUNITY_BASE` 覆盖保留（#26，PR #27）。
+
+### Fixed — 安装器
+- `update --target all` 只刷新已安装 Agent，未安装者不再被创建目录；省略 `--target` 改用已安装检测（#23，PR #24）。
+
 ## 0.6.0
 
 ### Removed — 上线前收敛为用户面/展示面
