@@ -38,7 +38,7 @@ async function doRequest(path, { method = 'GET', query, body, headers } = {}) {
       headersTimeout: DEFAULT_TIMEOUT_MS,
     });
   } catch (e) {
-    return { transportError: e.message };
+    return { transportError: e.message, method, path };
   }
   const text = await res.body.text();
   let json = null;
@@ -49,20 +49,44 @@ async function doRequest(path, { method = 'GET', query, body, headers } = {}) {
       /* non-JSON body */
     }
   }
-  return { status: res.statusCode, json, text };
+  return { status: res.statusCode, json, text, method, path };
 }
 
-function unwrap(resp) {
+const BODY_SNIPPET_MAX = 200;
+
+// Truncate an upstream body for error message context. Only the raw body is
+// included — request headers (AK/SK etc.) are never echoed.
+function bodySnippet(text) {
+  if (!text) return '';
+  const t = String(text).trim();
+  if (!t) return '';
+  const cut = t.length > BODY_SNIPPET_MAX ? `${t.slice(0, BODY_SNIPPET_MAX)}...` : t;
+  return ` | body: ${cut}`;
+}
+
+function errorContext(resp) {
+  return `${resp.method || 'GET'} ${resp.path || ''}`;
+}
+
+/** Unwrap a backend response into the toolkit result shape (test seam: exported). */
+export function unwrap(resp) {
   if (resp.transportError) {
-    return fail(CODES.UPSTREAM_ERROR, `无法连接后端服务: ${resp.transportError}`);
+    return fail(
+      CODES.UPSTREAM_ERROR,
+      `${CODES.UPSTREAM_ERROR}: ${errorContext(resp)} -> 连接失败: ${resp.transportError}`,
+    );
   }
   const { status, json, text } = resp;
   if (json && typeof json === 'object' && Object.hasOwn(json, 'code')) {
     if (json.code === 0) return ok(json.data);
-    return fail(mapBackendError(status, json.code), json.message || 'request failed');
+    const code = mapBackendError(status, json.code);
+    return fail(code, `${code}: ${errorContext(resp)} -> HTTP ${status} ${json.message || 'request failed'}${bodySnippet(text)}`);
   }
   if (status >= 200 && status < 300) return ok(json);
-  return fail(mapBackendError(status, null), (json && json.message) || text || `HTTP ${status}`);
+  const code = mapBackendError(status, null);
+  const hasJsonMessage = Boolean(json && json.message);
+  const upstream = hasJsonMessage ? `${json.message}${bodySnippet(text)}` : (text || '').trim().slice(0, BODY_SNIPPET_MAX);
+  return fail(code, `${code}: ${errorContext(resp)} -> HTTP ${status} ${upstream}`.trim());
 }
 
 /** Community user-facing call — injects AK/SK headers per request. */
@@ -125,7 +149,7 @@ async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}
       headersTimeout: DEFAULT_TIMEOUT_MS,
     });
   } catch (e) {
-    return { transportError: e.message };
+    return { transportError: e.message, method, path };
   }
   const text = await res.body.text();
   let json = null;
@@ -136,7 +160,7 @@ async function doGrowRequest(path, { method = 'GET', query, body, headers } = {}
       /* non-JSON body */
     }
   }
-  return { status: res.statusCode, json, text };
+  return { status: res.statusCode, json, text, method, path };
 }
 
 /** Growth public read-only call — no auth. */
