@@ -387,7 +387,47 @@ test('update --target all: does nothing when no agent is installed', () => {
   assert.equal(code, 0, out);
   assert.match(out, /no installed agent/i);
   for (const t of TARGETS) {
-    assert.ok(!existsSync(join(home, `.${t}`)), `update --target all must not create ${t} dir`);
+    assert.ok(!existsSync(skillsDirOf(home, t)), `update --target all must not create ${t} skills dir`);
+  }
+});
+
+test('update: without --target does not install into a never-installed agent', () => {
+  const home = makeHome();
+  // The agent's config dir exists, but this package was never installed there.
+  mkdirSync(join(home, '.workbuddy'), { recursive: true });
+
+  const skipped = runBin(['update'], home);
+  assert.equal(skipped.code, 1);
+  assert.match(skipped.err, /no installed agent detected/i);
+  assert.match(skipped.err, /update/i);
+  assert.ok(
+    !existsSync(join(skillsDirOf(home, 'workbuddy'), 'hd-blog-author')),
+    'update must not copy skills into an agent that never installed them',
+  );
+});
+
+test('update: without --target refreshes the single agent that has the skills', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'workbuddy'], home).code, 0);
+  rmSync(join(skillsDirOf(home, 'workbuddy'), 'hd-blog-author'), { recursive: true, force: true });
+
+  const { code, out } = runBin(['update'], home);
+  assert.equal(code, 0, out);
+  assert.match(out, /\[auto\] detected agent: workbuddy/);
+  assertSkillsInstalled(home, 'workbuddy');
+});
+
+test('install/update: a --target with no value is rejected instead of auto-detecting', () => {
+  for (const cmd of ['install', 'update']) {
+    const home = makeHome();
+    mkdirSync(join(home, '.hermes'), { recursive: true });
+    const { code, err } = runBin([cmd, '--target'], home);
+    assert.equal(code, 1, `${cmd} --target with no value must fail`);
+    assert.match(err, /missing value for --target/i);
+    assert.ok(
+      !existsSync(join(skillsDirOf(home, 'hermes'), 'hd-blog-author')),
+      `${cmd} must not install when --target has no value`,
+    );
   }
 });
 
