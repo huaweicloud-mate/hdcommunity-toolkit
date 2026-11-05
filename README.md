@@ -23,7 +23,7 @@
 | [OpenClaw](#openclaw) | `openclaw` | `~/.openclaw/skills` | 安装后打印片段 |
 | [AtomCode](#atomcode) | `atomcode` | `~/.atomcode/skills` | 安装后打印片段 |
 
-另有 `all`（逐个内置 Agent 安装）与 `generic`（只打印通用 MCP 片段，Skill 落到 `~/.generic/skills`）。未内置的 Agent 见 [Other Agents](#other-agents)。
+另有 `all`（逐个内置 Agent 安装）与 `generic`（复制 Skill 到 `~/.generic/skills` 并打印通用 MCP 片段）。未内置的 Agent 见 [Other Agents](#other-agents)。
 
 ## Quick Start
 
@@ -54,10 +54,12 @@ npx --yes hdcommunity-toolkit install
 | 命令 | 作用 |
 |---|---|
 | `install --target <agent>` | 复制 Skill 到该 Agent 的 Skill 目录，并注册 MCP server（或打印片段） |
-| `doctor [--target <agent>]` | 自检：Node 版本、Skill 源、AK/SK 是否就绪、目标 Agent 的 Skill 与 MCP 配置；不打印任何凭据 |
+| `doctor [--target <agent>]` | 自检：Node 版本、Skill 源、AK/SK 是否就绪、目标 Agent 的 Skill 覆盖、MCP 配置状态；不打印任何凭据 |
 | `status` | 列出全部内置 Agent 的安装状态与目录 |
 | `update --target <agent>` | 按当前 CLI 版本刷新已复制 Skill（升级用 `@latest`） |
-| `uninstall --target <agent>` | 移除该 Agent 下由本工具包复制的 Skill |
+| `uninstall --target <agent>` | 移除该 Agent 下由本工具包复制的 Skill（OpenCode 额外清理 `opencode.json` 中的 MCP 条目） |
+
+> `doctor` 的 MCP 检查范围：**仅 OpenCode 自动校验**（读取 `opencode.json`/`opencode.jsonc` 的 `mcp.hdcommunity-toolkit`，缺失即 `MCP MISSING` 并使 `doctor` 失败）；其余 Agent 固定显示 `MCP manual snippet`，表示需按安装时打印的片段手工注册，不影响 `doctor` 退出码。
 
 ### OpenCode
 
@@ -217,11 +219,11 @@ npx --yes hdcommunity-toolkit uninstall --target atomcode
 npx --yes hdcommunity-toolkit install --target all
 ```
 
-逐个安装上表 10 个内置 Agent（`codex` 与 `codex-desktop` 共用 `~/.codex/skills`）。`update --target all` 会刷新全部已安装 Agent。
+逐个安装上表 10 个内置 Agent（`codex` 与 `codex-desktop` 共用 `~/.codex/skills`）。`update --target all` 只刷新已安装的 Agent（以 `status` 中 `installed` 为准），不会为未安装的 Agent 创建目录。
 
 ### Other Agents
 
-未内置的 Agent 只要支持 MCP 即可接入：`install --target generic` 打印通用片段，Skill 落到 `~/.generic/skills`（也可自行复制到该 Agent 的 Skill 目录）。
+未内置的 Agent 只要支持 MCP 即可接入：`install --target generic` 会复制 Skill 到 `~/.generic/skills` 并打印通用 MCP 片段（也可自行把 Skill 复制到该 Agent 的 Skill 目录）。
 
 ```bash
 npx --yes hdcommunity-toolkit install --target generic
