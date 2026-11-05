@@ -1,13 +1,13 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.4.1",
-  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/promote), experience reports, personal growth data (my points/tasks/exchange), and public read-only data. Operator/management capabilities are not part of this package.",
+  "version": "0.6.0",
+  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/promote), experience reports, and public read-only data.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {
     "displayName": "HDCommunity Toolkit",
-    "shortDescription": "Huawei Cloud Community toolkit — MCP tools + Skills for blogs, personal growth data, and public read-only data.",
-    "longDescription": "Lets coding agents read/write Huawei Cloud Community blogs, view public growth-center tasks/prizes, and access their own growth data (points, tasks, sign-in, coupon exchange) through MCP tools and guided Skills.",
+    "shortDescription": "Huawei Cloud Community toolkit — MCP tools + Skills for blogs and public read-only data.",
+    "longDescription": "Lets coding agents read/write Huawei Cloud Community blogs through MCP tools and guided Skills.",
     "developerName": "HuaweiCloud Community",
     "category": "Cloud",
     "capabilities": ["Read", "Write", "Interactive"],
@@ -18,5 +18,5 @@
     "url": "https://github.com/huaweicloud-mate"
   },
   "license": "Apache-2.0",
-  "keywords": ["huaweicloud", "community", "blog", "growth", "grow", "points", "mcp", "agent", "skills"]
+  "keywords": ["huaweicloud", "community", "blog", "mcp", "agent", "skills"]
 }
