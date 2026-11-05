@@ -54,7 +54,7 @@ test('setup-cli: install -> uninstall opencode removes the hdcommunity-toolkit M
     const uninstalled = runCli(CLI, ['uninstall', '--target', 'opencode'], home);
     assert.equal(uninstalled.status, 0, uninstalled.stderr);
     const after = readConfig(home);
-    assert.equal(after.mcp[PKG_NAME], undefined, 'toolkit MCP entry should be removed');
+    assert.equal(after.mcp?.[PKG_NAME], undefined, 'toolkit MCP entry should be removed');
     assert.match(uninstalled.stdout, /\[opencode\] MCP config cleaned/);
     assert.ok(uninstalled.stdout.includes(join(home, '.config', 'opencode', 'opencode.json')));
   } finally {
@@ -134,7 +134,7 @@ test('setup-cli: install -> uninstall -> install is idempotent', () => {
     // A second uninstall removes the freshly written entry again...
     const second = runCli(CLI, ['uninstall', '--target', 'opencode'], home);
     assert.equal(second.status, 0, second.stderr);
-    assert.equal(readConfig(home).mcp[PKG_NAME], undefined);
+    assert.equal(readConfig(home).mcp?.[PKG_NAME], undefined);
     assert.match(second.stdout, /\[opencode\] MCP config cleaned/);
 
     // ...and a third one finds nothing to clean and stays silent.
