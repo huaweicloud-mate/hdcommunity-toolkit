@@ -158,12 +158,24 @@ function main() {
   const cmd = args._[0] || (args.help ? 'help' : undefined);
   switch (cmd) {
     case 'install':
+      if (args.help) {
+        printHelp();
+        return;
+      }
       install(args.target || 'opencode');
       break;
     case 'uninstall':
+      if (args.help) {
+        printHelp();
+        return;
+      }
       uninstall(args.target || 'opencode');
       break;
     case 'status':
+      if (args.help) {
+        printHelp();
+        return;
+      }
       status();
       break;
     case 'help':
