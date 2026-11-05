@@ -1,7 +1,7 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.4.0",
-  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/promote), experience reports, personal growth data (my points/tasks/exchange), and public read-only data. Operator/management capabilities live in hdcommunity-mng-toolkit.",
+  "version": "0.4.1",
+  "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/promote), experience reports, personal growth data (my points/tasks/exchange), and public read-only data. Operator/management capabilities are not part of this package.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "interface": {

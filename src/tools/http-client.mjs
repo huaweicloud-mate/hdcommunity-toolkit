@@ -5,7 +5,7 @@
 //   callGrowShow  -> growth public read-only (/agent/show/grow/**), no auth
 //   callGrow      -> growth user face (/agent/user/grow/**), injects AK/SK (identity resolved by the gateway)
 //
-// (Business-side /agent/grow/** and management-console clients live in hdcommunity-mng-toolkit.)
+// Operator-side growth clients are not part of this package.
 //
 // All responses are unwrapped from the backend's ApiResponse{code,message,data}
 // into the toolkit result shape (see errors.mjs).

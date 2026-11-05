@@ -1,7 +1,6 @@
 // Toolkit configuration: backend base URL, region, timeouts.
 //
 // 用户面/展示面同属该 base（hdblogservice，context-path /api/v1/blogservice）。
-// （管理面已迁移到 hdcommunity-mng-toolkit。）
 
 export const BACKEND_BASE = process.env.HDCOMMUNITY_BASE || 'https://opentest-dataset.huaweicloud.com/api/v1/blogservice';
 
@@ -15,9 +14,7 @@ export const DEFAULT_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_TIMEOUT_MS || 3
 //   /agent/show/grow/**  public read-only (no auth)     -> callGrowShow
 //   /agent/user/grow/**  user face (AK/SK; gateway resolves identity) -> callGrow
 //
-// Business (/agent/grow/**) and management (/agent/admin/grow/**) capabilities
-// live in hdcommunity-mng-toolkit (where the base stays mandatory: money writes
-// must never silently target an environment).
+// Operator-facing growth capabilities are not part of this package.
 //
 // Here only public reads and self-scoped user calls remain, so a default is safe:
 // test gateway by default, override with HDGROW_BASE
