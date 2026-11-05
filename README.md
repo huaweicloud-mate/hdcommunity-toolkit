@@ -22,7 +22,8 @@ npx --yes hdcommunity-toolkit uninstall --target opencode
 |---|---|---|
 | 社区用户面 | `hdcommunity_blog_*` / `draft_*` / `comment_*` / `user_*` / `file_*` | 华为云 **AK/SK**（`HW_ACCESS_KEY`/`HW_SECRET_KEY`） |
 | 公开只读 | `hdcommunity_show_*` | 无 |
-| 成长中心 | `hdgrow_*`（展示面） | 无（公开只读） |
+| 成长中心展示面 | `hdgrow_*`（任务/权益列表） | 无（公开只读） |
+| 成长中心用户面 | `hdgrow_user_*`（我的积分/任务/兑换） | 华为云 **AK/SK**（网关注入身份，只能访问本人数据） |
 
 AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。
 
@@ -38,18 +39,24 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 ### 公开只读（`hdcommunity_show_*`）
 `show_blog_list` / `show_blog_detail`。
 
-### 成长中心（`hdgrow_*`）
-展示（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`。
+### 成长中心展示面（`hdgrow_*`）
+公开只读（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`。
 
-> 查个人积分、个人任务完成状态、发积分、发券、兑换属运营侧能力，统一由 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit) 提供。
+### 成长中心用户面（`hdgrow_user_*`，AK/SK）
+我的：`user_info` / `user_tasks`（含完成状态）/ `user_prizes` / `user_points_detail` / `user_exchange_records`；
+签到：`user_sign_in` / `user_sign_in_status`；
+自助兑换：`user_prize_exchange`（涉钱，默认预演 + `confirm_token` + 强制 `biz_id`）。
+
+> 发积分、发券、代他人查询/兑换属运营侧能力，统一由 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit) 提供。
 
 ## 配置（环境变量）
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
-| `HDGROW_BASE` | **必填（无默认）** | 成长服务地址（如 `https://<网关>/api/v1/hdgrowservice`）；未配置 → `CONFIG_MISSING` |
+| `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（本包仅展示面公开只读；现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
 | `HW_REGION` | `cn-north-4` | 区域 |
+| `HDGROW_RISK_QUANTITY_MAX` | `10` | 自助兑换单次数量高风险阈值 |
 
 ## 内置 Skill
 

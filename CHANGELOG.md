@@ -2,12 +2,17 @@
 
 ## 0.4.0
 
+### Added — 成长中心用户面
+- 用户面工具组 `hdgrow_user_*`（8，AK/SK）：`user_info` / `user_tasks`（含完成状态）/ `user_prizes` / `user_sign_in` / `user_sign_in_status` / `user_points_detail` / `user_exchange_records` / `user_prize_exchange`。
+- 身份由网关注入（`X-User-Id`），用户只能访问本人数据；`user_prize_exchange` 复用 `dry_run` 预演 + `confirm_token` + `biz_id` 防护。
+
 ### Changed — 运营面迁出（BREAKING）
 - **移除成长中心业务侧能力**，与既有管理面一并归入 [hdcommunity-mng-toolkit](https://github.com/huaweicloud-mate/hdcommunity-mng-toolkit)：
   - 工具：`hdgrow_points_query` / `hdgrow_server_tasks` / `hdgrow_server_prizes` / `hdgrow_points_add` / `hdgrow_prize_exchange` / `hdgrow_issue_coupon`；
   - Skill：`hd-grow-operator`；
   - 配套的 `callGrow`、`GROW_BIZ` 端点常量与涉钱防护代码。
 - 本仓只保留 **普通用户可看/可用** 的能力：社区博客（写/发/评论/互动）、公开只读、成长中心展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）。
+- `HDGROW_BASE` 对展示面改为**测试网关默认值**（可用环境变量覆盖）；业务侧迁至 mng 仓后仍保持必填。
 
 ## 0.3.0
 
