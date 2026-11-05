@@ -91,10 +91,9 @@ function mergeOpencodeConfig() {
 }
 
 // Removal is symmetric with mergeOpencodeConfig: only entries exactly as
-// written by the installers (this package and the same-shaped
-// hdcommunity-mng-toolkit installer) are deleted. Entries modified by the user
+// written by this installer are deleted. Entries modified by the user
 // are kept and reported instead of being overwritten.
-const CLEANED_TOOLKIT_PKGS = ['hdcommunity-toolkit', 'hdcommunity-mng-toolkit'];
+const CLEANED_TOOLKIT_PKGS = ['hdcommunity-toolkit'];
 
 function sameMcpEntry(a, b) {
   for (const v of [a, b]) {

@@ -15,10 +15,8 @@ const CLI = fileURLToPath(new URL('../src/setup-cli.mjs', import.meta.url));
 const BIN = fileURLToPath(new URL('../bin/setup.cjs', import.meta.url));
 
 const PKG_NAME = 'hdcommunity-toolkit';
-const MNG_NAME = 'hdcommunity-mng-toolkit';
 
-// Entry shape written by mergeOpencodeConfig (this repo) and by the
-// same-shaped installer in hdcommunity-mng-toolkit.
+// Entry shape written by mergeOpencodeConfig.
 function mcpServerEntry(pkg) {
   return { type: 'local', command: ['npx', '-y', '-p', pkg, `${pkg}-mcp`], environment: {}, enabled: true };
 }
@@ -57,28 +55,6 @@ test('setup-cli: install -> uninstall opencode removes the hdcommunity-toolkit M
     assert.equal(after.mcp?.[PKG_NAME], undefined, 'toolkit MCP entry should be removed');
     assert.match(uninstalled.stdout, /\[opencode\] MCP config cleaned/);
     assert.ok(uninstalled.stdout.includes(join(home, '.config', 'opencode', 'opencode.json')));
-  } finally {
-    rmSync(home, { recursive: true, force: true });
-  }
-});
-
-test('setup-cli: uninstall cleans the mng toolkit entry and keeps unrelated config', () => {
-  const home = sandboxHome();
-  try {
-    writeConfig(home, {
-      theme: 'dark',
-      mcp: {
-        other_server: { type: 'remote', url: 'https://example.com/mcp' },
-        [MNG_NAME]: mcpServerEntry(MNG_NAME),
-      },
-    }, 'opencode.jsonc');
-
-    const r = runCli(CLI, ['uninstall', '--target', 'opencode'], home);
-    assert.equal(r.status, 0, r.stderr);
-    const after = readConfig(home, 'opencode.jsonc');
-    assert.equal(after.mcp[MNG_NAME], undefined, 'mng toolkit entry should be removed');
-    assert.equal(after.theme, 'dark');
-    assert.deepEqual(after.mcp.other_server, { type: 'remote', url: 'https://example.com/mcp' });
   } finally {
     rmSync(home, { recursive: true, force: true });
   }
