@@ -57,29 +57,92 @@ function copySkills(destDir) {
   return skills;
 }
 
-function mcpServerEntry() {
-  return { type: 'local', command: ['npx', '-y', '-p', PKG_NAME, MCP_BIN], environment: {}, enabled: true };
+function mcpServerEntryFor(pkg) {
+  return { type: 'local', command: ['npx', '-y', '-p', pkg, `${pkg}-mcp`], environment: {}, enabled: true };
 }
 
-function mergeOpencodeConfig() {
-  const candidates = [
+function opencodeConfigCandidates() {
+  return [
     join(home, '.config', 'opencode', 'opencode.json'),
     join(home, '.config', 'opencode', 'opencode.jsonc'),
   ];
-  const file = candidates.find((f) => existsSync(f)) || candidates[0];
-  let cfg = {};
-  if (existsSync(file)) {
-    try {
-      cfg = JSON.parse(readFileSync(file, 'utf8'));
-    } catch {
-      return { merged: false, file, reason: 'existing config not valid JSON' };
+}
+
+function readOpencodeConfig() {
+  const candidates = opencodeConfigCandidates();
+  const file = candidates.find((f) => existsSync(f));
+  if (!file) return { file: candidates[0], exists: false };
+  try {
+    return { file, cfg: JSON.parse(readFileSync(file, 'utf8')), exists: true };
+  } catch {
+    return { file, exists: true, parseError: true };
+  }
+}
+
+function mergeOpencodeConfig() {
+  const r = readOpencodeConfig();
+  if (r.parseError) return { merged: false, file: r.file, reason: 'existing config not valid JSON' };
+  const cfg = r.cfg || {};
+  cfg.mcp = cfg.mcp || {};
+  cfg.mcp[PKG_NAME] = mcpServerEntryFor(PKG_NAME);
+  mkdirSync(dirname(r.file), { recursive: true });
+  writeFileSync(r.file, JSON.stringify(cfg, null, 2));
+  return { merged: true, file: r.file };
+}
+
+// Removal is symmetric with mergeOpencodeConfig: only entries exactly as
+// written by the installers (this package and the same-shaped
+// hdcommunity-mng-toolkit installer) are deleted. Entries modified by the user
+// are kept and reported instead of being overwritten.
+const CLEANED_TOOLKIT_PKGS = ['hdcommunity-toolkit', 'hdcommunity-mng-toolkit'];
+
+function sameMcpEntry(a, b) {
+  for (const v of [a, b]) {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function pruneOpencodeConfig() {
+  const r = readOpencodeConfig();
+  if (!r.exists) return null;
+  const cleaned = [];
+  const kept = [];
+  if (!r.parseError) {
+    for (const key of ['mcp', 'mcpServers']) {
+      const bucket = r.cfg[key];
+      if (typeof bucket !== 'object' || bucket === null || Array.isArray(bucket)) continue;
+      for (const pkg of CLEANED_TOOLKIT_PKGS) {
+        if (!(pkg in bucket)) continue;
+        if (sameMcpEntry(bucket[pkg], mcpServerEntryFor(pkg))) {
+          delete bucket[pkg];
+          cleaned.push(`${key}.${pkg}`);
+        } else {
+          kept.push(`${key}.${pkg}`);
+        }
+      }
+      if (Object.keys(bucket).length === 0) delete r.cfg[key];
     }
   }
-  cfg.mcp = cfg.mcp || {};
-  cfg.mcp[PKG_NAME] = mcpServerEntry();
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify(cfg, null, 2));
-  return { merged: true, file };
+  if (cleaned.length > 0) {
+    mkdirSync(dirname(r.file), { recursive: true });
+    writeFileSync(r.file, JSON.stringify(r.cfg, null, 2));
+  }
+  return { file: r.file, cleaned, kept, unreadable: Boolean(r.parseError) };
+}
+
+function printOpencodeCleanup(r) {
+  if (!r) return;
+  if (r.unreadable) {
+    console.log(`[opencode] could not parse ${r.file}; check leftover MCP config manually`);
+    return;
+  }
+  if (r.cleaned.length > 0) {
+    console.log(`[opencode] MCP config cleaned -> ${r.file} (removed ${r.cleaned.join(', ')})`);
+  }
+  if (r.kept.length > 0) {
+    console.log(`[opencode] leftover MCP config (modified after install, kept): ${r.kept.join(', ')} in ${r.file}`);
+  }
 }
 
 function printGenericSnippet() {
@@ -117,6 +180,9 @@ function uninstall(target) {
     if (existsSync(p)) rmSync(p, { recursive: true, force: true });
   }
   console.log(`[${target}] removed skills from ${dest}`);
+  if (target === 'opencode') {
+    printOpencodeCleanup(pruneOpencodeConfig());
+  }
 }
 
 function status() {
