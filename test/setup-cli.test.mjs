@@ -274,7 +274,10 @@ test('install: an unknown --target fails and lists the valid values', () => {
 test('install: every built-in target lands its skills in the documented directory', () => {
   for (const t of TARGETS) {
     const home = makeHome();
-    const { code, out } = runBin(['install', '--target', t], home);
+    // #18: the dsh target registers its MCP server in cordis.patch.yml and
+    // therefore refuses to run without HDGROW_BASE.
+    const extraEnv = t === 'dsh' ? { HDGROW_BASE: 'https://grow.example/api' } : {};
+    const { code, out } = runBin(['install', '--target', t], home, extraEnv);
     assert.equal(code, 0, `${t}: ${out}`);
     assertSkillsInstalled(home, t);
   }
@@ -282,7 +285,7 @@ test('install: every built-in target lands its skills in the documented director
 
 test('install --target all: covers every built-in target', () => {
   const home = makeHome();
-  const { code, out } = runBin(['install', '--target', 'all'], home);
+  const { code, out } = runBin(['install', '--target', 'all'], home, { HDGROW_BASE: 'https://grow.example/api' });
   assert.equal(code, 0, out);
   for (const t of TARGETS) assertSkillsInstalled(home, t);
 });

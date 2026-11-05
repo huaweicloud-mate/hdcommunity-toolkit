@@ -18,7 +18,7 @@
 | [CodeArts Agent](#codearts-agent) | `codearts` | `~/.codeartsdoer/skills` | 安装后打印片段，加入 CodeArts MCP 配置 |
 | [CodeArts Work](#codearts-work) | `codearts-work` | `~/.codeartswork/skills` | 安装后打印片段 |
 | [WorkBuddy](#workbuddy) | `workbuddy` | `~/.workbuddy/skills` | 安装后打印片段 |
-| [DeepSeek Harness (DSH)](#deepseek-harness-dsh) | `dsh` | `$DSH_HOME/skills`（默认 `~/.dsh/skills`） | 安装后打印片段（自动注册见 [DSH](#deepseek-harness-dsh)） |
+| [DeepSeek Harness (DSH)](#deepseek-harness-dsh) | `dsh` | `$DSH_HOME/skills`（默认 `~/.dsh/skills`） | 自动写入 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`（profile 默认 `web`） |
 | [Hermes](#hermes) | `hermes` | `~/.hermes/skills` | 安装后打印片段 |
 | [OpenClaw](#openclaw) | `openclaw` | `~/.openclaw/skills` | 安装后打印片段 |
 | [AtomCode](#atomcode) | `atomcode` | `~/.atomcode/skills` | 安装后打印片段 |
@@ -59,9 +59,9 @@ npx --yes hdcommunity-toolkit install
 | `doctor [--target <agent>]` | 自检：Node 版本、Skill 源、AK/SK 是否就绪、目标 Agent 的 Skill 覆盖、MCP 配置状态；不打印任何凭据 |
 | `status` | 列出全部内置 Agent 的安装状态与目录 |
 | `update --target <agent>` | 按当前 CLI 版本刷新已复制 Skill（升级用 `@latest`）；省略 `--target` 时只刷新已安装的 Agent |
-| `uninstall --target <agent>` | 移除该 Agent 下由本工具包复制的 Skill（OpenCode 额外清理 `opencode.json` 中的 MCP 条目） |
+| `uninstall --target <agent>` | 移除该 Agent 下由本工具包复制的 Skill（OpenCode 额外清理 `opencode.json` 中的 MCP 条目，DSH 额外清理 `cordis.patch.yml` 中的托管条目） |
 
-> `doctor` 的 MCP 检查范围：**仅 OpenCode 自动校验**（读取 `opencode.json`/`opencode.jsonc` 的 `mcp.hdcommunity-toolkit`，缺失即 `MCP MISSING` 并使 `doctor` 失败）；其余 Agent 固定显示 `MCP manual snippet`，表示需按安装时打印的片段手工注册，不影响 `doctor` 退出码。
+> `doctor` 的 MCP 检查范围：**OpenCode 与 DSH 自动校验**（OpenCode 读取 `opencode.json`/`opencode.jsonc` 的 `mcp.hdcommunity-toolkit`；DSH 读取 `cordis.patch.yml` 的 `id: mcp-hdcommunity` 条目，文件非 YAML sequence 时显示 `MCP INVALID`）；缺失即 `MCP MISSING`/`INVALID` 并使 `doctor` 失败。其余 Agent 固定显示 `MCP manual snippet`，表示需按安装时打印的片段手工注册，不影响 `doctor` 退出码。
 >
 > `doctor` 省略 `--target` 时只汇总已安装的 Agent 并检查运行环境（Node、Skill 源、认证），未安装任何 Agent 时打印提示但退出码仍为 0（环境本身无问题）；指定 `--target` 时该 Agent 未安装则 `doctor` 退出码为 1。
 
@@ -161,7 +161,7 @@ npx --yes hdcommunity-toolkit uninstall --target workbuddy
 npx --yes hdcommunity-toolkit install --target dsh
 ```
 
-复制 Skill 到 `$DSH_HOME/skills`（未设置 `DSH_HOME` 时为 `~/.dsh/skills`），并打印 MCP 片段。**重启会话**后生效。
+复制 Skill 到 `$DSH_HOME/skills`（未设置 `DSH_HOME` 时为 `~/.dsh/skills`），并把 MCP server 自动注册到 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`（profile 默认 `web`，可用 `DSH_PROFILE` 覆盖）。**重启会话**后生效。
 
 ```bash
 npx --yes hdcommunity-toolkit doctor  --target dsh
@@ -170,7 +170,11 @@ npx --yes hdcommunity-toolkit update  --target dsh
 npx --yes hdcommunity-toolkit uninstall --target dsh
 ```
 
-> **MCP 自动注册**：DSH 从补丁层 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 组装配置，MCP 条目需用 `insert:` 语法写入。`install --target dsh` 自动写入该文件（按 entry id 幂等、只在托管注释块内增删）由 **#18 / PR #22** 跟进；在该能力合入前，请把上面打印的片段手工加入此补丁文件。合入后本节将改为"安装即自动注册"，无需手工编辑。
+> **MCP 自动注册**：DSH 从补丁层 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 组装配置，MCP 条目需用 `insert:` 语法写入。`install --target dsh` 自动写入该文件：
+> - 要求 `HDGROW_BASE` 已设置——缺失时按 `CONFIG_MISSING` 报错并以 exit 1 退出，**不写入任何文件**（不落 skills、不建 patch）；
+> - 按条目 `id: mcp-hdcommunity` 幂等，重复安装原地刷新托管条目（`HDGROW_BASE` 变更后 `install`/`update` 即生效），手工添加的同 id 条目不会被重复追加；
+> - `uninstall --target dsh` 按托管注释标记精确移除该条目，保留用户其它 patch 内容；
+> - 文件不是 YAML sequence（如普通 mapping 文档）时拒绝写入，改为打印手工片段。
 
 ### Hermes
 
@@ -224,6 +228,8 @@ npx --yes hdcommunity-toolkit install --target all
 ```
 
 逐个安装上表 10 个内置 Agent（`codex` 与 `codex-desktop` 共用 `~/.codex/skills`）。`update --target all` 只刷新已安装的 Agent（以 `status` 中 `installed` 为准），不会为未安装的 Agent 创建目录。
+
+> `all` 包含 `dsh`，而 `dsh` 需要 `HDGROW_BASE` 才能注册 MCP：未设置时该目标按 `CONFIG_MISSING` 报错并以 exit 1 结束（其余 Agent 仍会正常安装）。只想装其它 Agent 时可显式逐个指定 `--target`。
 
 ### Other Agents
 
@@ -288,6 +294,8 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 | `HDCOMMUNITY_BASE` | `https://opentest-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址 |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
+| `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |
+| `HDGROW_BASE` | 无默认 | `install --target dsh` 写入 dsh patch 的 MCP `env`；未设置时报 `CONFIG_MISSING` 并 exit 1（见 [DSH](#deepseek-harness-dsh)） |
 
 ## 内置 Skill
 
