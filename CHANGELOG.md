@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2
+
+### Fixed — GitCode 登录
+- 回环回调服务未等待 `listening` 就读取端口，`hdcommunity_auth_login` 直接抛 `TypeError`（`server.address()` 为 null）。
+- Windows 打开浏览器改用 PowerShell `Start-Process`：原 `cmd /c start` 会把 URL 里的 `&` 当命令分隔符，丢失 `state`，后端报“缺少 state”。
+- 新增回环回调服务单测（端口就绪、ticket 解析、state 校验）。
+
 ## 0.8.1
 
 ### Fixed — dsh 安装遗留
