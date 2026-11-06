@@ -171,8 +171,7 @@ npx --yes hdcommunity-toolkit uninstall --target dsh
 ```
 
 > **MCP 自动注册**：DSH 从补丁层 `$DSH_HOME/profiles/<profile>/cordis.patch.yml` 组装配置，MCP 条目需用 `insert:` 语法写入。`install --target dsh` 自动写入该文件：
-> - 要求 `HDGROW_BASE` 已设置——缺失时按 `CONFIG_MISSING` 报错并以 exit 1 退出，**不写入任何文件**（不落 skills、不建 patch）；
-> - 按条目 `id: mcp-hdcommunity` 幂等，重复安装原地刷新托管条目（`HDGROW_BASE` 变更后 `install`/`update` 即生效），手工添加的同 id 条目不会被重复追加；
+> - 按条目 `id: mcp-hdcommunity` 幂等，重复安装原地刷新托管条目，手工添加的同 id 条目不会被重复追加；
 > - `uninstall --target dsh` 按托管注释标记精确移除该条目，保留用户其它 patch 内容；
 > - 文件不是 YAML sequence（如普通 mapping 文档）时拒绝写入，改为打印手工片段。
 
@@ -229,7 +228,7 @@ npx --yes hdcommunity-toolkit install --target all
 
 逐个安装上表 10 个内置 Agent（`codex` 与 `codex-desktop` 共用 `~/.codex/skills`）。`update --target all` 只刷新已安装的 Agent（以 `status` 中 `installed` 为准），不会为未安装的 Agent 创建目录。
 
-> `all` 包含 `dsh`，而 `dsh` 需要 `HDGROW_BASE` 才能注册 MCP：未设置时该目标按 `CONFIG_MISSING` 报错并以 exit 1 结束（其余 Agent 仍会正常安装）。只想装其它 Agent 时可显式逐个指定 `--target`。
+> `all` 包含 `dsh`，会自动完成 skills 复制与 MCP 注册，无需额外环境变量。
 
 ### Other Agents
 
@@ -316,7 +315,6 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
 | `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |
-| `HDGROW_BASE` | 无默认 | `install --target dsh` 写入 dsh patch 的 MCP `env`；未设置时报 `CONFIG_MISSING` 并 exit 1（见 [DSH](#deepseek-harness-dsh)） |
 
 ## 内置 Skill
 

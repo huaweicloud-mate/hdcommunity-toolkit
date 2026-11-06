@@ -232,33 +232,17 @@ function install(target) {
   }
 }
 
-// dsh requires HDGROW_BASE up front: the validation runs before any file is
-// written, so a CONFIG_MISSING failure leaves neither a partial patch file nor
-// copied skills behind (spec: fail-fast, write nothing).
 function installDsh() {
-  const growBase = process.env.HDGROW_BASE;
-  if (!growBase || growBase.trim() === '') {
-    console.error(
-      `[dsh] CONFIG_MISSING: HDGROW_BASE is required to register the MCP server in ${dshPatchFile()}.`,
-    );
-    console.error(
-      '[dsh] Set it to your HDGrowService base (e.g. https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice) and re-run install.',
-    );
-    process.exitCode = 1;
-    return;
-  }
   const dest = skillsDirFor('dsh');
   const skills = copySkills(dest);
   console.log(`[dsh] skills -> ${dest} (${skills.length} skills)`);
-  installDshPatch(growBase.trim());
+  installDshPatch();
 }
 
-// Register the MCP server in the dsh per-profile patch file. The caller has
-// already validated HDGROW_BASE: growBase()'s built-in test-gateway default is a
-// display fallback and must not be baked into the user's patch file.
-function installDshPatch(growBase) {
+// Register the MCP server in the dsh per-profile patch file.
+function installDshPatch() {
   const file = dshPatchFile();
-  const r = upsertDshPatch(file, growBase);
+  const r = upsertDshPatch(file);
   if (r.action === 'created' || r.action === 'updated') {
     console.log(`[dsh] MCP patch ${r.action} -> ${file} (profile: ${process.env.DSH_PROFILE || DSH_DEFAULT_PROFILE})`);
   } else if (r.action === 'skipped') {
