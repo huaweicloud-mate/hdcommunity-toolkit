@@ -279,6 +279,8 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | 登录 | `hdcommunity_auth_*` | GitCode 授权（`login` / `status` / `logout`） |
 | 社区用户面 | `hdcommunity_blog_*` / `draft_*` / `comment_*` / `user_*` / `file_*` | `auto` 下优先 GitCode 会话（Bearer），否则 AK/SK |
 | 公开只读 | `hdcommunity_show_*` | 无 |
+| 成长中心展示面 | `hdgrow_*`（任务/权益列表） | 无（公开只读） |
+| 成长中心用户面 | `hdgrow_user_*`（我的积分/任务/兑换） | 华为云 **AK/SK**（网关注入身份，只能访问本人数据） |
 
 - 会话 token 存储：`~/.config/hdcommunity-toolkit/auth.json`（权限 `0600`，仅存社区会话 token）。
 - 无浏览器环境：`hdcommunity_auth_login { wait: false }` 返回授权 URL，完成授权后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`。
@@ -299,6 +301,14 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 ### 公开只读（`hdcommunity_show_*`）
 `show_blog_list` / `show_blog_detail`。
 
+### 成长中心展示面（`hdgrow_*`）
+公开只读（无鉴权）：`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`。
+
+### 成长中心用户面（`hdgrow_user_*`，AK/SK）
+我的：`user_info` / `user_tasks`（含完成状态）/ `user_prizes` / `user_points_detail` / `user_exchange_records`；
+签到：`user_sign_in` / `user_sign_in_status`；
+自助兑换：`user_prize_exchange`（涉钱，默认预演 + `confirm_token` + 强制 `biz_id`）。
+
 ## 配置（环境变量）
 
 | 变量 | 默认 | 说明 |
@@ -312,6 +322,8 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | `HDCOMMUNITY_GITCODE_TICKET_PARAM` | `ticket` | 回调/交换参数名（回调里也兼容 `code`） |
 | `HDCOMMUNITY_GITCODE_REDIRECT_URI` | 空 | 手动模式（无浏览器）使用的固定回调地址 |
 | `HDCOMMUNITY_LOGIN_TIMEOUT_MS` | `120000` | 等待授权回调的超时（毫秒） |
+| `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
+| `HDGROW_RISK_QUANTITY_MAX` | `10` | 自助兑换单次数量高风险阈值 |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
 | `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |

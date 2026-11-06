@@ -10,6 +10,7 @@ const expect = [
   'hdcommunity_blog_create',
   'hdcommunity_blog_list',
   'hdcommunity_show_blog_list',
+  'hdgrow_task_list',
 ];
 
 const missing = expect.filter((n) => !names.includes(n));

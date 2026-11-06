@@ -4,13 +4,17 @@
 //   hdcommunity_auth_*                                          登录（GitCode 授权 / 状态 / 退出）
 //   hdcommunity_blog_* / draft_* / comment_* / user_* / file_*   社区用户面
 //   hdcommunity_show_*                                          公开只读
+//   hdgrow_*                                                    成长中心展示面（公开只读）
+//   hdgrow_user_*                                               成长中心用户面（查自己：积分/任务/权益/兑换）
 
 import { AUTH_TOOLS } from './auth-tools.mjs';
 import { BLOG_TOOLS } from './blog-tools.mjs';
 import { SHOW_TOOLS } from './show-tools.mjs';
+import { GROW_TOOLS } from './grow-tools.mjs';
+import { GROW_USER_TOOLS } from './grow-user-tools.mjs';
 import { fail, CODES } from '../errors.mjs';
 
-const GROUPS = [AUTH_TOOLS, BLOG_TOOLS, SHOW_TOOLS];
+const GROUPS = [AUTH_TOOLS, BLOG_TOOLS, SHOW_TOOLS, GROW_TOOLS, GROW_USER_TOOLS];
 
 export const TOOL_DEFINITIONS = GROUPS.flatMap((g) => g.definitions);
 

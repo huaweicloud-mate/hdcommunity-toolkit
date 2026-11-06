@@ -1,5 +1,11 @@
 # Changelog
 
+## develop（未发布）
+
+### Restored — 成长中心能力
+- `develop` 分支重新保留成长中心：展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）与用户面（`hdgrow_user_*`，含签到/积分明细/自助兑换）、`HDGROW_BASE`、涉钱防护与相关测试。
+- `main` 仍按上线口径保持移除；`develop` 继续成长中心开发。
+
 ## 0.8.2
 
 ### Fixed — GitCode 登录

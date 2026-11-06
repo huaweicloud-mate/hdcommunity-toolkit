@@ -34,3 +34,22 @@ export const GITCODE_TICKET_PARAM = process.env.HDCOMMUNITY_GITCODE_TICKET_PARAM
 export const GITCODE_REDIRECT_URI = process.env.HDCOMMUNITY_GITCODE_REDIRECT_URI || '';
 
 export const LOGIN_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_LOGIN_TIMEOUT_MS || 120000);
+
+// ---------------------------------------------------------------------------
+// Growth center (HDGrowService) — display face + user face.
+//
+//   /agent/show/grow/**  public read-only (no auth)     -> callGrowShow
+//   /agent/user/grow/**  user face (AK/SK; gateway resolves identity) -> callGrow
+//
+// Operator-facing growth capabilities live in hdcommunity-mng-toolkit.
+//
+// Here only public reads and self-scoped user calls remain, so a default is safe:
+// test gateway by default, override with HDGROW_BASE
+// (prod: https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice).
+// ---------------------------------------------------------------------------
+
+const DEFAULT_GROW_BASE = 'https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice';
+
+export function growBase() {
+  return process.env.HDGROW_BASE || DEFAULT_GROW_BASE;
+}
