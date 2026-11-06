@@ -91,6 +91,27 @@ test('logout clears the local session', async () => {
   assert.equal(store.getActiveSession(), null);
 });
 
+test('loopback callback server binds a port and resolves with the ticket', async () => {
+  const { startCallbackServer } = await import('../src/auth/gitcode-login.mjs');
+  const cb = await startCallbackServer('state-1', 2000);
+  assert.ok(cb.port > 0, 'port must be resolved after listening');
+  const res = await fetch(`http://127.0.0.1:${cb.port}/callback?state=state-1&ticket=TICKET-9`);
+  assert.equal(res.status, 200);
+  const payload = await cb.promise;
+  assert.deepEqual(payload, { ticket: 'TICKET-9' });
+  cb.close();
+});
+
+test('loopback callback server rejects a mismatched state', async () => {
+  const { startCallbackServer } = await import('../src/auth/gitcode-login.mjs');
+  const cb = await startCallbackServer('state-1', 2000);
+  const res = await fetch(`http://127.0.0.1:${cb.port}/callback?state=other&ticket=T`);
+  assert.equal(res.status, 400);
+  const payload = await cb.promise;
+  assert.equal(payload.error, 'STATE_MISMATCH');
+  cb.close();
+});
+
 test('cleanup', async () => {
   server.close();
   fs.rmSync(AUTH_FILE, { force: true });

@@ -46,8 +46,9 @@ export function openBrowser(url) {
     let cmd;
     let args;
     if (platform === 'win32') {
-      cmd = 'cmd';
-      args = ['/c', 'start', '', url];
+      // 不能走 `cmd /c start <url>`：cmd 会把 URL 里的 & 当成命令分隔符，丢掉 state 等后续参数。
+      cmd = 'powershell';
+      args = ['-NoProfile', '-Command', `Start-Process '${String(url).replace(/'/g, "''")}'`];
     } else if (platform === 'darwin') {
       cmd = 'open';
       args = [url];
@@ -117,11 +118,12 @@ export async function exchangeTicket(ticket, { state, redirectUri } = {}) {
 
 /**
  * Run the loopback callback server and resolve with {ticket} (or an error).
+ * Must await the `listening` event: `server.address()` is null until then.
  * @param {string} expectedState
  * @param {number} timeoutMs
- * @returns {{promise: Promise<{ticket: string}>, port: number, close: () => void}}
+ * @returns {Promise<{promise: Promise<{ticket: string}>, port: number, close: () => void}>}
  */
-function startCallbackServer(expectedState, timeoutMs) {
+export async function startCallbackServer(expectedState, timeoutMs) {
   let timer;
   let settle;
   const promise = new Promise((resolve) => {
@@ -155,7 +157,10 @@ function startCallbackServer(expectedState, timeoutMs) {
     finish(200, '<h1>登录成功</h1><p>可以关闭此页面，回到 Agent 继续操作。</p>', { ticket });
   });
 
-  server.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
   const port = server.address().port;
 
   timer = setTimeout(() => {
@@ -200,7 +205,7 @@ export async function revokeToken(token) {
  */
 export async function loginWithBrowser({ timeoutMs = LOGIN_TIMEOUT_MS, openBrowser: launch = true } = {}) {
   const state = createState();
-  const cb = startCallbackServer(state, timeoutMs);
+  const cb = await startCallbackServer(state, timeoutMs);
   const redirectUri = `http://127.0.0.1:${cb.port}${CALLBACK_PATH}`;
   const loginUrl = buildLoginUrl(state, redirectUri);
   const browserOpened = launch ? openBrowser(loginUrl) : false;
