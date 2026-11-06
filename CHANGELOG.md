@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+### Fixed — dsh 安装遗留
+- `install --target dsh` 不再要求/写入 `HDGROW_BASE`，MCP 条目只包含启动命令与参数；`install --target all` 同理。
+- 旧版本写入的 `env: HDGROW_BASE` 会在 `install`/`update` 时被原地清理；`uninstall` 行为不变。
+- README 移除相关环境变量与说明（成长中心能力仅保留在 `develop` 分支）。
+
 ## 0.8.0
 
 ### Added — GitCode 账号登录（M2）

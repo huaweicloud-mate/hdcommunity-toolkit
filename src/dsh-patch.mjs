@@ -33,13 +33,8 @@ export function dshPatchFile() {
   return join(dshHome(), 'profiles', profile, 'cordis.patch.yml');
 }
 
-/** Single-quote a YAML scalar ('' escapes a quote inside single quotes). */
-export function yamlSingleQuoted(value) {
-  return `'${String(value).replace(/'/g, "''")}'`;
-}
-
 /** Render the managed patch block (comment marker + insert: entry). */
-export function renderDshPatchEntry(growBase) {
+export function renderDshPatchEntry() {
   return [
     DSH_PATCH_MANAGED_COMMENT,
     '- insert:',
@@ -50,8 +45,6 @@ export function renderDshPatchEntry(growBase) {
     '        transport: stdio',
     '        command: npx',
     "        args: ['-y', '-p', 'hdcommunity-toolkit', 'hdcommunity-toolkit-mcp']",
-    '        env:',
-    `          HDGROW_BASE: ${yamlSingleQuoted(growBase)}`,
     '',
     '',
   ].join('\n');
@@ -122,22 +115,21 @@ export function isSequenceDocument(text) {
 
 /**
  * Create/update the managed block in the dsh patch file.
- * The managed block is refreshed in place when it already exists (so a changed
- * HDGROW_BASE is picked up on reinstall); a hand-written same-id entry is never
- * duplicated nor rewritten.
+ * The managed block is refreshed in place when it already exists; a hand-written
+ * same-id entry is never duplicated nor rewritten.
  * Returns { action: 'created' | 'updated' | 'skipped' | 'invalid' }.
  * `invalid` means the existing file is not a YAML sequence and was left as is.
  */
-export function upsertDshPatch(file, growBase) {
+export function upsertDshPatch(file) {
   if (!existsSync(file)) {
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, renderDshPatchEntry(growBase));
+    writeFileSync(file, renderDshPatchEntry());
     return { action: 'created' };
   }
   const text = readFileSync(file, 'utf8');
   const lines = text.split('\n');
   const block = splitDshPatchManagedBlock(lines);
-  const body = renderDshPatchEntry(growBase);
+  const body = renderDshPatchEntry();
   // Our managed entry is still there: replace exactly that block.
   if (block && block.end > block.start + 1) {
     const replacement = [...body.replace(/\n+$/, '').split('\n'), ''];
