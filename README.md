@@ -268,14 +268,27 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 
 ## 认证
 
+支持两种登录方式，由 `HDCOMMUNITY_AUTH_MODE` 控制（默认 `auto`：本地有 GitCode 会话就用它，否则回退 AK/SK）：
+
+| 方式 | 适用 | 说明 |
+|---|---|---|
+| **GitCode 账号登录**（推荐） | 普通用户 | 调 `hdcommunity_auth_login`，打开后端授权页完成 GitCode 授权，回调换取社区会话 token 并缓存 |
+| 华为云 **AK/SK** | CI / 服务间调用 | 请求头 `X-HW-AK` / `X-HW-SK` |
+
 | 面 | 工具前缀 | 鉴权 |
 |---|---|---|
-| 社区用户面 | `hdcommunity_blog_*` / `draft_*` / `comment_*` / `user_*` / `file_*` | 华为云 **AK/SK**（`HW_ACCESS_KEY`/`HW_SECRET_KEY`） |
+| 登录 | `hdcommunity_auth_*` | GitCode 授权（`login` / `status` / `logout`） |
+| 社区用户面 | `hdcommunity_blog_*` / `draft_*` / `comment_*` / `user_*` / `file_*` | `auto` 下优先 GitCode 会话（Bearer），否则 AK/SK |
 | 公开只读 | `hdcommunity_show_*` | 无 |
 
-AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。安装后可用 `doctor` 确认是否就绪（只报告状态，不打印凭据）。
+- 会话 token 存储：`~/.config/hdcommunity-toolkit/auth.json`（权限 `0600`，仅存社区会话 token）。
+- 无浏览器环境：`hdcommunity_auth_login { wait: false }` 返回授权 URL，完成授权后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`。
+- AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。可用 `doctor` 检查（只报告状态，不打印凭据）。
 
 ## 工具清单
+
+### 登录（`hdcommunity_auth_*`）
+`auth_login`（GitCode 授权登录）/ `auth_status`（登录状态）/ `auth_logout`（退出登录）。
 
 ### 社区用户面（`hdcommunity_*`）
 博客：`blog_list` / `blog_detail` / `blog_create` / `blog_update` / `blog_delete` / `blog_mine` / `blog_favorites`；
@@ -292,6 +305,14 @@ AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.con
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `HDCOMMUNITY_BASE` | `https://open-dataset.huaweicloud.com/api/v1/blogservice` | 社区服务地址（现网默认；其他环境显式指定完整 base，含 context-path） |
+| `HDCOMMUNITY_AUTH_MODE` | `auto` | `auto`（GitCode 会话优先，回退 AK/SK）/ `gitcode` / `aksk` |
+| `HDCOMMUNITY_AUTH_FILE` | `~/.config/hdcommunity-toolkit/auth.json` | 本地会话 token 存储路径（0600） |
+| `HDCOMMUNITY_GITCODE_LOGIN_PATH` | `/agent/auth/gitcode/login` | 后端 GitCode 授权入口（相对 `HDCOMMUNITY_BASE`） |
+| `HDCOMMUNITY_GITCODE_EXCHANGE_PATH` | `/agent/auth/gitcode/exchange` | 后端票据换会话 token 接口 |
+| `HDCOMMUNITY_GITCODE_LOGOUT_PATH` | 空 | 可选：登出时服务端吊销接口；空则只清本地 |
+| `HDCOMMUNITY_GITCODE_TICKET_PARAM` | `ticket` | 回调/交换参数名（回调里也兼容 `code`） |
+| `HDCOMMUNITY_GITCODE_REDIRECT_URI` | 空 | 手动模式（无浏览器）使用的固定回调地址 |
+| `HDCOMMUNITY_LOGIN_TIMEOUT_MS` | `120000` | 等待授权回调的超时（毫秒） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
 | `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |

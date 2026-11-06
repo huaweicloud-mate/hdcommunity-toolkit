@@ -1,14 +1,15 @@
 // HTTP client for backend calls.
 //
-//   callBlog      -> community user-facing (/agent/blog/**), injects AK/SK
+//   callBlog      -> community user-facing (/agent/blog/**), Bearer (GitCode login) or AK/SK
 //   callShow      -> public read-only (/agent/show/**), no auth
 //
 // All responses are unwrapped from the backend's ApiResponse{code,message,data}
 // into the toolkit result shape (see errors.mjs).
 
 import { request } from 'undici';
-import { BACKEND_BASE, REGION, DEFAULT_TIMEOUT_MS } from '../config.mjs';
+import { BACKEND_BASE, REGION, DEFAULT_TIMEOUT_MS, AUTH_MODE } from '../config.mjs';
 import { loadCredentials, hasCredentials } from '../credentials.mjs';
+import { getValidSession, clearSession } from '../auth/token-store.mjs';
 import { ok, fail, mapBackendError, CODES } from '../errors.mjs';
 
 function buildUrl(path, query) {
@@ -85,13 +86,32 @@ export function unwrap(resp) {
   return fail(code, `${code}: ${errorContext(resp)} -> HTTP ${status} ${upstream}`.trim());
 }
 
-/** Community user-facing call — injects AK/SK headers per request. */
+/**
+ * Community user-facing call.
+ * Auth preference follows HDCOMMUNITY_AUTH_MODE:
+ *   auto    -> a valid stored GitCode session (Bearer) when present, otherwise AK/SK
+ *   gitcode -> stored GitCode session only (NEED_LOGIN when missing)
+ *   aksk    -> AK/SK only
+ */
 export async function callBlog(method, path, { query, body } = {}) {
+  const session = AUTH_MODE === 'aksk' ? null : getValidSession();
+  if (session) {
+    const resp = await doRequest(path, { method, query, body, headers: { Authorization: `Bearer ${session.token}` } });
+    if (resp.status === 401) {
+      clearSession();
+      return fail(CODES.UNAUTHORIZED, '登录已过期或无效，请重新执行 hdcommunity_auth_login');
+    }
+    return unwrap(resp);
+  }
+  if (AUTH_MODE === 'gitcode') {
+    return fail(CODES.NEED_LOGIN, '未登录：请先执行 hdcommunity_auth_login（GitCode 授权）');
+  }
+
   const creds = loadCredentials();
   if (!hasCredentials(creds)) {
     return fail(
       CODES.AUTH_MISSING,
-      '未配置 AK/SK：请设置 HW_ACCESS_KEY/HW_SECRET_KEY，或配置 ~/.config/huaweicloud/credentials.json',
+      '未登录且未配置 AK/SK：可执行 hdcommunity_auth_login 使用 GitCode 登录，或设置 HW_ACCESS_KEY/HW_SECRET_KEY',
     );
   }
   const headers = {
