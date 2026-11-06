@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0
+
+### Added — GitCode 账号登录（M2）
+- 新增 `hdcommunity_auth_login` / `hdcommunity_auth_status` / `hdcommunity_auth_logout`。
+- 后端发起 GitCode 授权：本地回环回调（127.0.0.1 随机端口）+ state 校验，换取社区会话 token 并缓存（`~/.config/hdcommunity-toolkit/auth.json`，0600）。
+- 无浏览器环境支持手动模式：`wait=false` 返回授权 URL，授权后用 `ticket` 完成登录。
+- 用户面请求按 `HDCOMMUNITY_AUTH_MODE`（`auto`/`gitcode`/`aksk`）选择 Bearer 会话或 AK/SK；401 自动清除会话并提示重新登录。
+- 后端端点、参数名、超时均可通过环境变量覆盖。
+
 ## 0.7.0
 
 ### Added — dsh 自动注册

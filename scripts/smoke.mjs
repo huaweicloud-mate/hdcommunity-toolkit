@@ -6,6 +6,7 @@ const list = await dispatch('tools/list', {});
 
 const names = list.tools.map((t) => t.name);
 const expect = [
+  'hdcommunity_auth_login',
   'hdcommunity_blog_create',
   'hdcommunity_blog_list',
   'hdcommunity_show_blog_list',
