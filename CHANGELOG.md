@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3
+
+### Fixed
+- GitCode 登录回环回调端口竞态与 Windows 打开 URL 丢 state（#31，PR #31）。
+
 ## 0.8.2
 
 ### Fixed — GitCode 登录
