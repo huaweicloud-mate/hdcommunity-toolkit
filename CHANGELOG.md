@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.4
+
+### Fixed
+- parseArgs 支持 `--target=<value>` 等号形式，空值/非法值不再静默回退自动检测（#32，PR #33）。
+
 ## 0.8.3
 
 ### Fixed
