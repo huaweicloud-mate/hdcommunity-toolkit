@@ -18,9 +18,16 @@ export function ok(data) {
   return { ok: true, data: data === undefined ? null : data };
 }
 
-/** Failed tool result. */
-export function fail(code, message) {
-  return { ok: false, error: { code, message: message || code } };
+/**
+ * Failed tool result.
+ * @param {string} code
+ * @param {string} message
+ * @param {object} [details] 额外结构化字段（并入 error，向后兼容；用于携带 browser_opened/login_url 等兜底信息）
+ */
+export function fail(code, message, details) {
+  const error = { code, message: message || code };
+  if (details && typeof details === 'object') Object.assign(error, details);
+  return { ok: false, error };
 }
 
 // Backend business codes (see design §6.1)

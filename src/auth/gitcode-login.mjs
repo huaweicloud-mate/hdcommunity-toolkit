@@ -24,6 +24,7 @@ import {
   GITCODE_REMOTE_START_PATH,
   DEFAULT_TIMEOUT_MS,
   LOGIN_TIMEOUT_MS,
+  LOGIN_URL_GRACE_MS,
 } from '../config.mjs';
 import { ok, fail, CODES } from '../errors.mjs';
 
@@ -41,29 +42,72 @@ export function buildLoginUrl(state, redirectUri) {
   return url.toString();
 }
 
-/** Best-effort browser launch. Returns false when no opener is available. */
-export function openBrowser(url) {
-  try {
-    const platform = process.platform;
-    let cmd;
-    let args;
-    if (platform === 'win32') {
-      // 不能走 `cmd /c start <url>`：cmd 会把 URL 里的 & 当成命令分隔符，丢掉 state 等后续参数。
-      cmd = 'powershell';
-      args = ['-NoProfile', '-Command', `Start-Process '${String(url).replace(/'/g, "''")}'`];
-    } else if (platform === 'darwin') {
-      cmd = 'open';
-      args = [url];
-    } else {
-      cmd = 'xdg-open';
-      args = [url];
-    }
-    const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
-    child.unref();
-    return true;
-  } catch {
-    return false;
+// opener 正常拉起后很快以 0 退出；超过该窗口仍存活（部分平台 opener 常驻）即视为已拉起。
+const BROWSER_LAUNCH_GRACE_MS = 1500;
+
+/** 按平台解析打开浏览器所用的命令。 */
+function browserCommand(platform, url) {
+  if (platform === 'win32') {
+    // 不能走 `cmd /c start <url>`：cmd 会把 URL 里的 & 当成命令分隔符，丢掉 state 等后续参数。
+    return { cmd: 'powershell', args: ['-NoProfile', '-Command', `Start-Process '${String(url).replace(/'/g, "''")}'`] };
   }
+  if (platform === 'darwin') return { cmd: 'open', args: [String(url)] };
+  return { cmd: 'xdg-open', args: [String(url)] };
+}
+
+/**
+ * Best-effort browser launch.
+ * spawn 的返回值无法判断浏览器是否真的拉起（stdio: 'ignore' 时错误只从 error 事件暴露，
+ * 某些平台 opener 还会以非 0 退出），因此监听子进程 error / exit：
+ * spawn 失败（如 Windows 无 powershell、Linux 无 xdg-open）或非 0 退出 → false，
+ * 调用方据此把 login_url 交给用户手动打开。
+ * @param {string} url
+ * @param {{platform?: string, cmd?: string, args?: string[], graceMs?: number}} [opts] cmd/args/graceMs 仅用于单测注入
+ * @returns {Promise<boolean>}
+ */
+export function openBrowser(url, { platform = process.platform, cmd, args, graceMs = BROWSER_LAUNCH_GRACE_MS } = {}) {
+  return new Promise((resolve) => {
+    let spec;
+    try {
+      spec = cmd ? { cmd, args: args || [String(url)] } : browserCommand(platform, url);
+    } catch {
+      resolve(false);
+      return;
+    }
+
+    let child;
+    try {
+      child = spawn(spec.cmd, spec.args, { detached: true, stdio: 'ignore' });
+    } catch {
+      resolve(false);
+      return;
+    }
+
+    let settled = false;
+    let timer;
+    const onError = () => finish(false);
+    const onExit = (code) => finish(code === 0);
+    function finish(launched) {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      child.removeListener('error', onError);
+      child.removeListener('exit', onExit);
+      if (launched) {
+        try {
+          child.unref();
+        } catch {
+          /* already gone */
+        }
+      }
+      resolve(launched);
+    }
+
+    child.once('error', onError);
+    child.once('exit', onExit);
+    timer = setTimeout(() => finish(true), graceMs);
+    if (typeof timer.unref === 'function') timer.unref();
+  });
 }
 
 function unwrap(resp) {
@@ -200,27 +244,88 @@ export async function revokeToken(token) {
   }
 }
 
+const TIMED_OUT = Symbol('login-timed-out');
+
+/** 等待登录结果，超过 timeoutMs 视为超时（回环服务由调用方继续持有）。 */
+async function waitForOutcome(promise, timeoutMs) {
+  let timer;
+  const guard = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
+    if (typeof timer.unref === 'function') timer.unref();
+  });
+  try {
+    return await Promise.race([promise, guard]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Full login: start callback, open browser, wait for the ticket, exchange it.
- * @param {{timeoutMs?: number, openBrowser?: boolean}} [opts]
+ *
+ * 浏览器拉不起来时不再空等到超时：立即返回 browser_opened:false + login_url，并把
+ * 回环服务多保留 graceMs，onBrowserUnopened 可在后台继续等票据、换票、落盘
+ * （用户手动打开 login_url 完成授权后同一回环服务即可收到 ticket）。
+ * @param {{timeoutMs?: number, graceMs?: number, openBrowser?: boolean, launcher?: (url: string) => Promise<boolean>,
+ *          onBrowserUnopened?: (ctx: {state: string, redirectUri: string, loginUrl: string, result: Promise<any>}) => any}} [opts]
  * @returns {Promise<{ok:boolean, data?:object, error?:{code:string,message:string}}>}
  */
-export async function loginWithBrowser({ timeoutMs = LOGIN_TIMEOUT_MS, openBrowser: launch = true } = {}) {
+export async function loginWithBrowser({
+  timeoutMs = LOGIN_TIMEOUT_MS,
+  graceMs = LOGIN_URL_GRACE_MS,
+  openBrowser: launch = true,
+  launcher = openBrowser,
+  onBrowserUnopened = null,
+} = {}) {
+  const waitMs = Math.max(0, Number(timeoutMs) || 0);
+  const grace = Math.max(0, Number(graceMs) || 0);
   const state = createState();
-  const cb = await startCallbackServer(state, timeoutMs);
+  // 回环服务比工具等待窗口多活一个 grace 窗口，保证返回给用户的 login_url 仍可授权。
+  const cb = await startCallbackServer(state, waitMs + grace);
   const redirectUri = `http://127.0.0.1:${cb.port}${CALLBACK_PATH}`;
   const loginUrl = buildLoginUrl(state, redirectUri);
-  const browserOpened = launch ? openBrowser(loginUrl) : false;
+  const browserOpened = launch ? await launcher(loginUrl) : false;
 
-  const result = await cb.promise;
+  const keepWaiting = () => {
+    if (typeof onBrowserUnopened !== 'function') return;
+    Promise.resolve()
+      .then(() => onBrowserUnopened({ state, redirectUri, loginUrl, result: cb.promise }))
+      .catch(() => {});
+  };
+  const fallbackFields = { browser_opened: browserOpened, login_url: loginUrl };
+  const manualHint = (seconds) =>
+    seconds > 0
+      ? `请在浏览器中手动打开该地址完成 GitCode 授权（约 ${seconds} 秒内仍有效，票据到达后会话自动保存）`
+      : '请重新调用 hdcommunity_auth_login 重试';
+
+  if (launch && !browserOpened) {
+    // 关键修复：浏览器没起来时立即把 login_url 交给调用方，避免 MCP 请求静默超时。
+    keepWaiting();
+    return fail(
+      CODES.AUTH_FAILED,
+      `浏览器未能自动打开。${manualHint(Math.round((waitMs + grace) / 1000))}：${loginUrl}`,
+      fallbackFields,
+    );
+  }
+
+  const outcome = await waitForOutcome(cb.promise, waitMs);
+  if (outcome === TIMED_OUT || (outcome && outcome.error === 'TIMEOUT')) {
+    keepWaiting();
+    return fail(
+      CODES.AUTH_FAILED,
+      `登录超时（${Math.round(waitMs / 1000)} 秒）：未收到授权回调。${manualHint(Math.round(grace / 1000))}：${loginUrl}`,
+      fallbackFields,
+    );
+  }
+
+  const result = outcome;
   if (result.error) {
     const messages = {
-      STATE_MISMATCH: '登录失败：state 校验失败',
-      TICKET_MISSING: '登录失败：未收到授权票据',
-      CALLBACK_PATH_MISMATCH: '登录失败：回调路径错误',
-      TIMEOUT: `登录超时（${Math.round(timeoutMs / 1000)} 秒）：请重试，或使用手动模式（wait=false 后传 ticket）`,
+      STATE_MISMATCH: '登录失败：state 校验失败，请重新调用 hdcommunity_auth_login',
+      TICKET_MISSING: '登录失败：未收到授权票据，请重新调用 hdcommunity_auth_login',
+      CALLBACK_PATH_MISMATCH: '登录失败：回调路径错误，请重新调用 hdcommunity_auth_login',
     };
-    return fail(result.error === 'TIMEOUT' ? CODES.AUTH_FAILED : CODES.PARAM_ERROR, messages[result.error] || '登录失败');
+    return fail(CODES.PARAM_ERROR, messages[result.error] || '登录失败', { browser_opened: browserOpened });
   }
 
   const ex = await exchangeTicket(result.ticket, { state, redirectUri });
