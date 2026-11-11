@@ -6,6 +6,13 @@
 - `develop` 分支重新保留成长中心：展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）与用户面（`hdgrow_user_*`，含签到/积分明细/自助兑换）、`HDGROW_BASE`、涉钱防护与相关测试。
 - `main` 仍按上线口径保持移除；`develop` 继续成长中心开发。
 
+## 0.9.0
+
+### Added — GitCode 远程登录（跨机器）
+- `hdcommunity_auth_login { remote: true }`：不依赖本地回环，返回授权 URL 并按 `state` 轮询后端结果；浏览器可在任意设备打开。
+- 新增 `hdcommunity_auth_poll`：手动续轮询（pending / 登录成功即落盘）。
+- 同步后端 `/agent/auth/gitcode/poll` 与 `mode=poll` 登录模式；新增 `HDCOMMUNITY_GITCODE_POLL_PATH` 配置。
+
 ## 0.8.5
 
 ### Fixed — 手动登录模式

@@ -10,9 +10,11 @@ import {
 } from '../config.mjs';
 import {
   buildLoginUrl,
+  buildRemoteLoginUrl,
   createState,
   exchangeTicket,
   loginWithBrowser,
+  pollRemote,
   revokeToken,
 } from '../auth/gitcode-login.mjs';
 import {
@@ -41,6 +43,10 @@ function sessionView(session) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function persist(ex) {
   const data = ex.data || {};
   const token = data.token || data.access_token;
@@ -65,11 +71,22 @@ export const AUTH_TOOLS = {
         properties: {
           ticket: P.str('手动模式：GitCode 授权回调里的 ticket/code（与 wait=false 配合）'),
           code: P.str('同 ticket（别名，兼容回调参数名为 code 的场景）'),
+          remote: P.bool('远程模式（跨机器）：不给回环回调，返回授权 URL 后按 state 轮询；适合浏览器不在插件机器上的场景'),
+          state: P.str('远程模式续轮询：复用已有的 state（可选）'),
           wait: P.bool('默认 true：打开浏览器并等待回调；false：只返回授权 URL'),
           open_browser: P.bool('默认 true：自动打开浏览器'),
           timeout_s: P.int(`等待回调的秒数（默认 ${Math.round(LOGIN_TIMEOUT_MS / 1000)}）`),
           force: P.bool('默认 false：已登录时直接返回当前登录态'),
         },
+      },
+    },
+    {
+      name: 'hdcommunity_auth_poll',
+      description: 'Poll a remote GitCode login (cross-machine): pending or logged-in. 轮询远程登录结果。',
+      inputSchema: {
+        type: 'object',
+        required: ['state'],
+        properties: { state: P.str('发起远程登录时返回的 state') },
       },
     },
     {
@@ -101,6 +118,36 @@ export const AUTH_TOOLS = {
         if (s) return ok({ already_logged_in: true, ...sessionView(s) });
       }
 
+      // 远程模式：浏览器可在任意设备打开，插件按 state 轮询取结果（不需要回环可达）。
+      if (a.remote) {
+        const state = a.state || createState();
+        const loginUrl = buildRemoteLoginUrl(state);
+        if (a.wait === false) {
+          return ok({
+            remote: true,
+            pending: true,
+            state,
+            login_url: loginUrl,
+            next: '把 login_url 交给用户（或生成二维码）在任意设备打开授权；完成后调用 hdcommunity_auth_poll { state }。',
+          });
+        }
+        const timeoutMs = a.timeout_s ? Number(a.timeout_s) * 1000 : 120000;
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+          const p = await pollRemote(state);
+          if (!p.ok) return p;
+          if (!p.data || p.data.pending !== true) return persist(ok(p.data));
+          await sleep(2000);
+        }
+        return ok({
+          remote: true,
+          pending: true,
+          state,
+          login_url: loginUrl,
+          next: '授权尚未完成；请用户打开 login_url，或稍后调用 hdcommunity_auth_poll { state }。',
+        });
+      }
+
       if (a.wait === false) {
         // 手动模式必须有回调地址：后端要用它把一次性票据送回插件；缺了会直接 400「缺少 redirect_uri」。
         if (!GITCODE_REDIRECT_URI) {
@@ -127,6 +174,13 @@ export const AUTH_TOOLS = {
         browser_opened: r.data.browser_opened,
         login_url: r.data.login_url,
       });
+    },
+
+    'hdcommunity_auth_poll': async (a) => {
+      const p = await pollRemote(a.state);
+      if (!p.ok) return p;
+      if (!p.data || p.data.pending === true) return ok({ pending: true });
+      return persist(ok(p.data));
     },
 
     'hdcommunity_auth_status': async () => {

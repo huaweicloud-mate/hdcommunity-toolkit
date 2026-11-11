@@ -284,12 +284,13 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 
 - 会话 token 存储：`~/.config/hdcommunity-toolkit/auth.json`（权限 `0600`，仅存社区会话 token）。
 - 无浏览器环境：需先配置 `HDCOMMUNITY_GITCODE_REDIRECT_URI`（后端允许的回调地址），再用 `hdcommunity_auth_login { wait: false }` 返回授权 URL，完成后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`；未配置该地址时工具会直接报错，不会给出不可用的 URL。
+- 跨机器登录：浏览器不在插件所在机器时用 `hdcommunity_auth_login { remote: true }`（或 `remote: true, wait: false` 先取 URL），把授权 URL/二维码交给用户打开；插件按 `state` 轮询（`hdcommunity_auth_poll`），不需要本地回环可达。
 - AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。可用 `doctor` 检查（只报告状态，不打印凭据）。
 
 ## 工具清单
 
 ### 登录（`hdcommunity_auth_*`）
-`auth_login`（GitCode 授权登录）/ `auth_status`（登录状态）/ `auth_logout`（退出登录）。
+`auth_login`（GitCode 授权登录）/ `auth_poll`（远程模式轮询）/ `auth_status`（登录状态）/ `auth_logout`（退出登录）。
 
 ### 社区用户面（`hdcommunity_*`）
 博客：`blog_list` / `blog_detail` / `blog_create` / `blog_update` / `blog_delete` / `blog_mine` / `blog_favorites`；
@@ -321,6 +322,7 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | `HDCOMMUNITY_GITCODE_LOGOUT_PATH` | 空 | 可选：登出时服务端吊销接口；空则只清本地 |
 | `HDCOMMUNITY_GITCODE_TICKET_PARAM` | `ticket` | 回调/交换参数名（回调里也兼容 `code`） |
 | `HDCOMMUNITY_GITCODE_REDIRECT_URI` | 空 | 手动模式（无浏览器）使用的固定回调地址 |
+| `HDCOMMUNITY_GITCODE_POLL_PATH` | `/agent/auth/gitcode/poll` | 远程模式（跨机器）轮询接口 |
 | `HDCOMMUNITY_LOGIN_TIMEOUT_MS` | `120000` | 等待授权回调的超时（毫秒） |
 | `HDGROW_BASE` | 测试网关 `https://opctest-dataset.developer.huaweicloud.com/api/v1/hdgrowservice` | 成长服务地址（现网 `https://opc-dataset.developer.huaweicloud.com/api/v1/hdgrowservice`，可用环境变量覆盖） |
 | `HDGROW_RISK_QUANTITY_MAX` | `10` | 自助兑换单次数量高风险阈值 |
