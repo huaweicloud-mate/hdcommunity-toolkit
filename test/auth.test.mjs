@@ -10,6 +10,8 @@ const AUTH_FILE = path.join(os.tmpdir(), `hd-auth-${process.pid}-${Date.now()}.j
 process.env.HDCOMMUNITY_AUTH_FILE = AUTH_FILE;
 process.env.HDCOMMUNITY_AUTH_MODE = 'gitcode';
 process.env.HDCOMMUNITY_GITCODE_TICKET_PARAM = 'ticket';
+// 登录兜底 URL 的存活窗口：测试里压到 200ms，避免残留监听拖住测试进程。
+process.env.HDCOMMUNITY_LOGIN_URL_GRACE_MS = '200';
 
 const seen = [];
 const server = http.createServer((req, res) => {
@@ -163,6 +165,84 @@ test('remote login poll stores the session when ready', async () => {
   assert.equal(r.data.account, 'g9');
   const store = await import('../src/auth/token-store.mjs');
   assert.equal(store.getActiveSession().token, 'TOKEN-P');
+});
+
+test('openBrowser resolves false when the opener cannot be spawned', async () => {
+  const { openBrowser } = await import('../src/auth/gitcode-login.mjs');
+  const launched = await openBrowser('http://127.0.0.1:1/callback', { cmd: 'hdcommunity-no-such-opener' });
+  assert.equal(launched, false, 'a spawn failure (ENOENT) must be reported, not swallowed');
+});
+
+test('openBrowser resolves true when the opener process exits successfully', async () => {
+  const { openBrowser } = await import('../src/auth/gitcode-login.mjs');
+  const launched = await openBrowser('http://127.0.0.1:1/callback', { cmd: process.execPath, args: ['-e', ''] });
+  assert.equal(launched, true);
+});
+
+test('wait=true login opens the browser, receives the ticket and returns the session', async () => {
+  const { loginWithBrowser } = await import('../src/auth/gitcode-login.mjs');
+  const launcher = async (loginUrl) => {
+    const u = new URL(loginUrl);
+    const redirect = new URL(u.searchParams.get('redirect_uri'));
+    redirect.searchParams.set('state', u.searchParams.get('state'));
+    redirect.searchParams.set('ticket', 'TICKET-LOOP');
+    setTimeout(() => {
+      fetch(redirect).catch(() => {});
+    }, 5);
+    return true;
+  };
+  const r = await loginWithBrowser({ timeoutMs: 5000, graceMs: 2000, launcher });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.data.browser_opened, true);
+  assert.match(r.data.login_url, /127\.0\.0\.1:\d+\/callback/);
+  assert.equal(r.data.token, 'TOKEN-1');
+  const ex = seen.filter((s) => s.url.endsWith('/auth/gitcode/exchange')).pop();
+  assert.equal(JSON.parse(ex.body).ticket, 'TICKET-LOOP');
+});
+
+test('a failed browser launch fails fast with login_url and still completes the login in background', async () => {
+  const { loginWithBrowser, exchangeTicket } = await import('../src/auth/gitcode-login.mjs');
+  const started = Date.now();
+  let background;
+  const r = await loginWithBrowser({
+    timeoutMs: 10000,
+    graceMs: 3000,
+    launcher: async () => false,
+    onBrowserUnopened: ({ state, redirectUri, loginUrl, result }) => {
+      assert.ok(loginUrl.startsWith('http://127.0.0.1:'), 'fallback URL must be exposed to the caller');
+      background = (async () => {
+        const redirect = new URL(redirectUri);
+        redirect.searchParams.set('state', state);
+        redirect.searchParams.set('ticket', 'TICKET-MANUAL');
+        const res = await fetch(redirect);
+        assert.equal(res.status, 200);
+        const payload = await result;
+        assert.equal(payload.ticket, 'TICKET-MANUAL');
+        return exchangeTicket(payload.ticket, { state, redirectUri });
+      })();
+    },
+  });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'AUTH_FAILED');
+  assert.equal(r.error.browser_opened, false);
+  assert.ok(r.error.login_url, 'login_url must be returned when the browser cannot be opened');
+  assert.ok(r.error.message.includes(r.error.login_url), 'error message must contain the openable URL');
+  assert.ok(Date.now() - started < 2000, 'must not wait for the full login timeout');
+
+  const ex = await background;
+  assert.equal(ex.ok, true, JSON.stringify(ex));
+  assert.equal(ex.data.token, 'TOKEN-1');
+});
+
+test('wait=true timeout returns login_url with browser_opened:false instead of an opaque timeout', async () => {
+  const store = await import('../src/auth/token-store.mjs');
+  store.clearSession({ all: true });
+  const r = await callTool('hdcommunity_auth_login', { timeout_s: 1, open_browser: false });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'AUTH_FAILED');
+  assert.equal(r.error.browser_opened, false);
+  assert.ok(r.error.login_url, 'login_url must be returned on timeout');
+  assert.ok(r.error.message.includes(r.error.login_url), 'error message must contain the openable URL');
 });
 
 test('cleanup', async () => {
