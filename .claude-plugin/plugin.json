@@ -1,6 +1,6 @@
 {
   "name": "hdcommunity-toolkit",
-  "version": "0.8.5",
+  "version": "0.9.0",
   "description": "Huawei Cloud Community Agent toolkit: MCP tools + Skills for community blogs (author/promote), GitCode account login, experience reports, and public read-only data.",
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
