@@ -283,6 +283,7 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 - 会话 token 存储：`~/.config/hdcommunity-toolkit/auth.json`（权限 `0600`，仅存社区会话 token）。
 - 无浏览器环境：需先配置 `HDCOMMUNITY_GITCODE_REDIRECT_URI`（后端允许的回调地址），再用 `hdcommunity_auth_login { wait: false }` 返回授权 URL，完成后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`；未配置该地址时工具会直接报错，不会给出不可用的 URL。
 - 跨机器登录：浏览器不在插件所在机器时用 `hdcommunity_auth_login { remote: true }`（或 `remote: true, wait: false` 先取 URL），把授权 URL/二维码交给用户打开；插件用后端返回的 `poll_key`（仅插件持有，不放进 URL）轮询 `hdcommunity_auth_poll`，不需要本地回环可达。
+- 浏览器无法自动打开（如 Windows 下 `Start-Process` 失败）时不再静默等到超时：`hdcommunity_auth_login` 立即返回 `browser_opened: false` 与可直接打开的 `login_url`，用户手动打开该地址完成授权即可，票据仍由同一回环服务接收并自动保存会话（`login_url` 默认在 5 分钟内有效）；等待超时的错误信息同样带 `login_url`。
 - AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。可用 `doctor` 检查（只报告状态，不打印凭据）。
 
 ## 工具清单
@@ -315,6 +316,7 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | `HDCOMMUNITY_GITCODE_POLL_PATH` | `/agent/auth/gitcode/poll` | 远程模式（跨机器）轮询接口 |
 | `HDCOMMUNITY_GITCODE_REMOTE_START_PATH` | `/agent/auth/gitcode/remote/start` | 远程模式发起接口（返回 login_url + poll_key） |
 | `HDCOMMUNITY_LOGIN_TIMEOUT_MS` | `120000` | 等待授权回调的超时（毫秒） |
+| `HDCOMMUNITY_LOGIN_URL_GRACE_MS` | `300000` | 浏览器未自动打开/等待超时后，返回的 `login_url` 仍可手动授权的时长（毫秒） |
 | `HW_REGION` | `cn-north-4` | 区域 |
 | `DSH_HOME` | `~/.dsh` | DSH 配置根目录（`install --target dsh` 读取） |
 | `DSH_PROFILE` | `web` | DSH profile 名，决定 `cordis.patch.yml` 写入位置 |
