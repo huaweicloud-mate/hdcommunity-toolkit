@@ -194,7 +194,10 @@ test('wait=true login opens the browser, receives the ticket and returns the ses
   const r = await loginWithBrowser({ timeoutMs: 5000, graceMs: 2000, launcher });
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(r.data.browser_opened, true);
-  assert.match(r.data.login_url, /127\.0\.0\.1:\d+\/callback/);
+  assert.match(r.data.login_url, /\/auth\/gitcode\/login\?/);
+  const redirect = new URL(new URL(r.data.login_url).searchParams.get('redirect_uri'));
+  assert.equal(redirect.hostname, '127.0.0.1');
+  assert.equal(redirect.pathname, '/callback');
   assert.equal(r.data.token, 'TOKEN-1');
   const ex = seen.filter((s) => s.url.endsWith('/auth/gitcode/exchange')).pop();
   assert.equal(JSON.parse(ex.body).ticket, 'TICKET-LOOP');
