@@ -20,6 +20,7 @@ import {
   GITCODE_LOGOUT_PATH,
   GITCODE_TICKET_PARAM,
   GITCODE_REDIRECT_URI,
+  GITCODE_POLL_PATH,
   DEFAULT_TIMEOUT_MS,
   LOGIN_TIMEOUT_MS,
 } from '../config.mjs';
@@ -224,4 +225,47 @@ export async function loginWithBrowser({ timeoutMs = LOGIN_TIMEOUT_MS, openBrows
   const ex = await exchangeTicket(result.ticket, { state, redirectUri });
   if (!ex.ok) return ex;
   return ok({ ...ex.data, browser_opened: browserOpened, login_url: loginUrl });
+}
+/**
+ * 远程模式（跨机器）：授权 URL，浏览器可在任意设备打开；不需要回环地址。
+ * @param {string} state
+ */
+export function buildRemoteLoginUrl(state) {
+  const url = new URL(BACKEND_BASE.replace(/\/$/, '') + GITCODE_LOGIN_PATH);
+  url.searchParams.set('mode', 'poll');
+  url.searchParams.set('state', state);
+  return url.toString();
+}
+
+/**
+ * 远程模式：轮询后端登录结果（pending / token / error）。
+ * @param {string} state
+ */
+export async function pollRemote(state) {
+  if (!state || !String(state).trim()) {
+    return fail(CODES.PARAM_ERROR, '缺少 state');
+  }
+  let resp;
+  try {
+    const res = await request(new URL(BACKEND_BASE.replace(/\/$/, '') + GITCODE_POLL_PATH), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: String(state) }),
+      bodyTimeout: DEFAULT_TIMEOUT_MS,
+      headersTimeout: DEFAULT_TIMEOUT_MS,
+    });
+    const text = await res.body.text();
+    let json = null;
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        /* non-JSON body */
+      }
+    }
+    resp = { status: res.statusCode, json, text };
+  } catch (e) {
+    resp = { transportError: e.message };
+  }
+  return unwrap(resp);
 }
