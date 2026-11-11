@@ -421,6 +421,14 @@ function parseArgs(argv) {
         args.target = value;
         i++;
       }
+    } else if (a.startsWith('--target=')) {
+      // Equals form (`--target=opencode`) behaves exactly like the spaced form:
+      // an empty value means "no value given", anything else is validated by
+      // resolveTarget. Without this branch the whole token fell into args._ and
+      // silently fell back to auto-detection.
+      const value = a.slice('--target='.length);
+      if (value === '') args.targetMissing = true;
+      else args.target = value;
     } else if (a === '--help' || a === '-h') args.help = true;
     else args._.push(a);
   }
@@ -478,7 +486,9 @@ function main() {
     case 'doctor': {
       if (args.help) return printHelp();
       let target = null;
-      if (args.target !== undefined) {
+      // `--target` meant to name one agent: a missing value must be an error, not
+      // a silent fallback to the full default report.
+      if (args.target !== undefined || args.targetMissing) {
         target = resolveTarget(args, 'install');
         if (!target) break;
         if (NON_AGENT_TARGETS.includes(target)) {

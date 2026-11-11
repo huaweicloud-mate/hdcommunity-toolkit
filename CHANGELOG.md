@@ -6,6 +6,22 @@
 - `develop` 分支重新保留成长中心：展示面（`hdgrow_task_list` / `hdgrow_task_categories` / `hdgrow_prize_list`）与用户面（`hdgrow_user_*`，含签到/积分明细/自助兑换）、`HDGROW_BASE`、涉钱防护与相关测试。
 - `main` 仍按上线口径保持移除；`develop` 继续成长中心开发。
 
+## 0.8.5
+
+### Fixed — 手动登录模式
+- `hdcommunity_auth_login { wait: false }` 在未配置 `HDCOMMUNITY_GITCODE_REDIRECT_URI` 时不再返回缺少 `redirect_uri` 的不可用 URL，而是明确报错并提示：改用默认 `wait=true`（自动回环登录），或先配置回调地址。
+- README 同步说明手动模式的前置条件。
+
+## 0.8.4
+
+### Fixed
+- parseArgs 支持 `--target=<value>` 等号形式，空值/非法值不再静默回退自动检测（#32，PR #33）。
+
+## 0.8.3
+
+### Fixed
+- GitCode 登录回环回调端口竞态与 Windows 打开 URL 丢 state（#31，PR #31）。
+
 ## 0.8.2
 
 ### Fixed — GitCode 登录

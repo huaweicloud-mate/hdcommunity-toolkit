@@ -283,7 +283,7 @@ OpenCode 风格的 `mcp` 键等价写法（也是 `install --target opencode` �
 | 成长中心用户面 | `hdgrow_user_*`（我的积分/任务/兑换） | 华为云 **AK/SK**（网关注入身份，只能访问本人数据） |
 
 - 会话 token 存储：`~/.config/hdcommunity-toolkit/auth.json`（权限 `0600`，仅存社区会话 token）。
-- 无浏览器环境：`hdcommunity_auth_login { wait: false }` 返回授权 URL，完成授权后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`。
+- 无浏览器环境：需先配置 `HDCOMMUNITY_GITCODE_REDIRECT_URI`（后端允许的回调地址），再用 `hdcommunity_auth_login { wait: false }` 返回授权 URL，完成后把回调里的 `ticket` 传回 `hdcommunity_auth_login { ticket }`；未配置该地址时工具会直接报错，不会给出不可用的 URL。
 - AK/SK 读取优先级：环境变量 `HW_ACCESS_KEY`/`HW_SECRET_KEY` → `~/.config/huaweicloud/credentials.json` → `~/.hcloud/config.json`。可用 `doctor` 检查（只报告状态，不打印凭据）。
 
 ## 工具清单

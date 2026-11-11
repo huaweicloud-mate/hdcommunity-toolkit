@@ -102,6 +102,13 @@ export const AUTH_TOOLS = {
       }
 
       if (a.wait === false) {
+        // 手动模式必须有回调地址：后端要用它把一次性票据送回插件；缺了会直接 400「缺少 redirect_uri」。
+        if (!GITCODE_REDIRECT_URI) {
+          return fail(
+            CODES.PARAM_ERROR,
+            '手动模式需要配置 HDCOMMUNITY_GITCODE_REDIRECT_URI（后端允许的回调地址，默认仅 127.0.0.1/localhost）；无浏览器环境建议直接使用默认 wait=true 自动回环登录',
+          );
+        }
         const state = createState();
         return ok({
           login_url: buildLoginUrl(state, GITCODE_REDIRECT_URI),

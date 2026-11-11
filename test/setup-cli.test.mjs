@@ -439,6 +439,75 @@ test('unknown command: exits 1 and prints help', () => {
   assert.match(err, /Targets:/);
 });
 
+// --- Issue #32: `--target=<value>` (equals form) must behave exactly like `--target <value>` ---
+
+test('install --target=opencode (equals form) installs like the spaced form', () => {
+  const home = makeHome();
+  const { code, out, err } = runBin(['install', '--target=opencode'], home);
+  assert.equal(code, 0, err);
+  assert.doesNotMatch(out, /\[auto\] detected agent/);
+  assertSkillsInstalled(home, 'opencode');
+  assert.deepEqual(readConfig(home).mcp[PKG_NAME], mcpServerEntry(PKG_NAME));
+});
+
+test('--target=<unknown> (equals form) is rejected by install/uninstall/update/doctor', () => {
+  for (const cmd of ['install', 'uninstall', 'update', 'doctor']) {
+    const home = makeHome();
+    // A single detectable agent must not tempt the CLI into auto-detecting.
+    mkdirSync(join(home, '.workbuddy'), { recursive: true });
+    const { code, out, err } = runBin([cmd, '--target=no-such'], home);
+    assert.equal(code, 1, `${cmd} --target=no-such must fail\n${out}`);
+    assert.match(err, /unknown --target: no-such/i);
+    assert.doesNotMatch(out, /\[auto\] detected agent/);
+    assert.ok(
+      !existsSync(join(skillsDirOf(home, 'workbuddy'), 'hd-blog-author')),
+      `${cmd} must not install/refresh skills for an unknown equals-form target`,
+    );
+  }
+});
+
+test('--target= (empty equals form) is rejected by install/uninstall/update/doctor', () => {
+  for (const cmd of ['install', 'uninstall', 'update', 'doctor']) {
+    const home = makeHome();
+    mkdirSync(join(home, '.hermes'), { recursive: true });
+    const { code, out, err } = runBin([cmd, '--target='], home);
+    assert.equal(code, 1, `${cmd} --target= must fail\n${out}`);
+    assert.match(err, /missing value for --target/i);
+    assert.doesNotMatch(out, /\[auto\] detected agent/);
+    assert.ok(
+      !existsSync(join(skillsDirOf(home, 'hermes'), 'hd-blog-author')),
+      `${cmd} must not install when --target= has no value`,
+    );
+  }
+});
+
+test('uninstall --target=hermes (equals form) removes the installed skills', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'hermes'], home).code, 0);
+  const { code, out } = runBin(['uninstall', '--target=hermes'], home);
+  assert.equal(code, 0, out);
+  assert.ok(!existsSync(join(skillsDirOf(home, 'hermes'), 'hd-blog-author')));
+});
+
+test('update --target=atomcode (equals form) refreshes skills removed from the agent', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'atomcode'], home).code, 0);
+  rmSync(join(skillsDirOf(home, 'atomcode'), 'hd-blog-author'), { recursive: true, force: true });
+  const { code, out } = runBin(['update', '--target=atomcode'], home);
+  assert.equal(code, 0, out);
+  assertSkillsInstalled(home, 'atomcode');
+  assert.match(out, /\[atomcode\] refreshed/);
+});
+
+test('doctor --target=opencode (equals form) passes once the agent is installed', () => {
+  const home = makeHome();
+  assert.equal(runBin(['install', '--target', 'opencode'], home).code, 0);
+  const { code, out } = runBin(['doctor', '--target=opencode'], home);
+  assert.equal(code, 0, out);
+  assert.match(out, /3\/3/);
+  assert.match(out, /MCP\s+OK/);
+});
+
 // The README is the user-facing contract; keep it tied to the same target list and
 // directory mapping the CLI uses so a half-added target cannot ship again.
 test('README: documents every built-in target with its directory and full command set', () => {
