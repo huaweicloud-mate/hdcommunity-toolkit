@@ -25,9 +25,22 @@ const server = http.createServer((req, res) => {
       json(200, { code: 0, data: { token: 'TOKEN-1', user: { id: 'g1', username: 'alice' }, expires_in: 3600 } });
       return;
     }
+    if (req.url === '/api/v1/blogservice/agent/auth/gitcode/remote/start') {
+      json(200, {
+        code: 0,
+        data: {
+          login_url: 'https://gitcode.com/oauth/authorize?state=st-r&mode=poll',
+          state: 'st-r',
+          poll_key: 'pk-r',
+          expires_in: 600,
+        },
+      });
+      return;
+    }
     if (req.url === '/api/v1/blogservice/agent/auth/gitcode/poll') {
-      const state = JSON.parse(body || '{}').state || '';
-      if (state.includes('pending')) {
+      const parsed = JSON.parse(body || '{}');
+      const key = parsed.poll_key || parsed.state || '';
+      if (key.includes('pending')) {
         json(200, { code: 0, data: { pending: true } });
       } else {
         json(200, { code: 0, data: { pending: false, token: 'TOKEN-P', user: { id: 'g9', username: 'bob' }, expires_in: 3600 } });
@@ -129,23 +142,22 @@ test('manual mode without a redirect URI fails with guidance instead of an unusa
 });
 
 test('remote login returns a poll-mode URL without opening a loopback callback', async () => {
-  const r = await callTool('hdcommunity_auth_login', { remote: true, wait: false, state: 'remote-1' });
+  const r = await callTool('hdcommunity_auth_login', { remote: true, wait: false });
   assert.equal(r.ok, true);
   assert.equal(r.data.pending, true);
-  assert.equal(r.data.state, 'remote-1');
+  assert.equal(r.data.poll_key, 'pk-r');
   assert.match(r.data.login_url, /mode=poll/);
-  assert.match(r.data.login_url, /state=remote-1/);
   assert.ok(!r.data.login_url.includes('redirect_uri'));
 });
 
 test('remote login poll reports pending', async () => {
-  const r = await callTool('hdcommunity_auth_poll', { state: 'still-pending' });
+  const r = await callTool('hdcommunity_auth_poll', { poll_key: 'pk-pending' });
   assert.equal(r.ok, true);
   assert.equal(r.data.pending, true);
 });
 
 test('remote login poll stores the session when ready', async () => {
-  const r = await callTool('hdcommunity_auth_poll', { state: 'ready-1' });
+  const r = await callTool('hdcommunity_auth_poll', { poll_key: 'pk-ready' });
   assert.equal(r.ok, true);
   assert.equal(r.data.logged_in, true);
   assert.equal(r.data.account, 'g9');

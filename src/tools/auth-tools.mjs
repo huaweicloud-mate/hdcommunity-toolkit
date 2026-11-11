@@ -10,12 +10,12 @@ import {
 } from '../config.mjs';
 import {
   buildLoginUrl,
-  buildRemoteLoginUrl,
   createState,
   exchangeTicket,
   loginWithBrowser,
   pollRemote,
   revokeToken,
+  startRemoteSession,
 } from '../auth/gitcode-login.mjs';
 import {
   authFilePath,
@@ -71,8 +71,7 @@ export const AUTH_TOOLS = {
         properties: {
           ticket: P.str('手动模式：GitCode 授权回调里的 ticket/code（与 wait=false 配合）'),
           code: P.str('同 ticket（别名，兼容回调参数名为 code 的场景）'),
-          remote: P.bool('远程模式（跨机器）：不给回环回调，返回授权 URL 后按 state 轮询；适合浏览器不在插件机器上的场景'),
-          state: P.str('远程模式续轮询：复用已有的 state（可选）'),
+          remote: P.bool('远程模式（跨机器）：返回授权 URL 和仅插件持有的 poll_key，按 poll_key 轮询；适合浏览器不在插件机器上的场景'),
           wait: P.bool('默认 true：打开浏览器并等待回调；false：只返回授权 URL'),
           open_browser: P.bool('默认 true：自动打开浏览器'),
           timeout_s: P.int(`等待回调的秒数（默认 ${Math.round(LOGIN_TIMEOUT_MS / 1000)}）`),
@@ -85,8 +84,10 @@ export const AUTH_TOOLS = {
       description: 'Poll a remote GitCode login (cross-machine): pending or logged-in. 轮询远程登录结果。',
       inputSchema: {
         type: 'object',
-        required: ['state'],
-        properties: { state: P.str('发起远程登录时返回的 state') },
+        properties: {
+          poll_key: P.str('发起远程登录时返回的 poll_key（推荐）'),
+          state: P.str('兼容旧客户端：poll 键沿用 state'),
+        },
       },
     },
     {
@@ -118,23 +119,25 @@ export const AUTH_TOOLS = {
         if (s) return ok({ already_logged_in: true, ...sessionView(s) });
       }
 
-      // 远程模式：浏览器可在任意设备打开，插件按 state 轮询取结果（不需要回环可达）。
+      // 远程模式：浏览器可在任意设备打开；poll_key 仅插件持有，不放进 URL。
       if (a.remote) {
-        const state = a.state || createState();
-        const loginUrl = buildRemoteLoginUrl(state);
+        const started = await startRemoteSession();
+        if (!started.ok) return started;
+        const { login_url: loginUrl, state, poll_key: pollKey } = started.data;
         if (a.wait === false) {
           return ok({
             remote: true,
             pending: true,
             state,
+            poll_key: pollKey,
             login_url: loginUrl,
-            next: '把 login_url 交给用户（或生成二维码）在任意设备打开授权；完成后调用 hdcommunity_auth_poll { state }。',
+            next: '把 login_url 交给用户（或生成二维码）在任意设备打开授权；完成后调用 hdcommunity_auth_poll { poll_key }。',
           });
         }
         const timeoutMs = a.timeout_s ? Number(a.timeout_s) * 1000 : 120000;
         const deadline = Date.now() + timeoutMs;
         while (Date.now() < deadline) {
-          const p = await pollRemote(state);
+          const p = await pollRemote(pollKey);
           if (!p.ok) return p;
           if (!p.data || p.data.pending !== true) return persist(ok(p.data));
           await sleep(2000);
@@ -143,8 +146,9 @@ export const AUTH_TOOLS = {
           remote: true,
           pending: true,
           state,
+          poll_key: pollKey,
           login_url: loginUrl,
-          next: '授权尚未完成；请用户打开 login_url，或稍后调用 hdcommunity_auth_poll { state }。',
+          next: '授权尚未完成；请用户打开 login_url，或稍后调用 hdcommunity_auth_poll { poll_key }。',
         });
       }
 
@@ -177,7 +181,7 @@ export const AUTH_TOOLS = {
     },
 
     'hdcommunity_auth_poll': async (a) => {
-      const p = await pollRemote(a.state);
+      const p = await pollRemote(a.poll_key || a.state);
       if (!p.ok) return p;
       if (!p.data || p.data.pending === true) return ok({ pending: true });
       return persist(ok(p.data));

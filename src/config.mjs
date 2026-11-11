@@ -32,6 +32,9 @@ export const GITCODE_LOGOUT_PATH = process.env.HDCOMMUNITY_GITCODE_LOGOUT_PATH |
 export const GITCODE_TICKET_PARAM = process.env.HDCOMMUNITY_GITCODE_TICKET_PARAM || 'ticket';
 // 远程模式（跨机器）：回调结果暂存在后端 state 上，插件轮询取走
 export const GITCODE_POLL_PATH = process.env.HDCOMMUNITY_GITCODE_POLL_PATH || '/agent/auth/gitcode/poll';
+// 远程模式发起（返回 login_url + 仅插件持有的 poll_key）
+export const GITCODE_REMOTE_START_PATH =
+  process.env.HDCOMMUNITY_GITCODE_REMOTE_START_PATH || '/agent/auth/gitcode/remote/start';
 // Manual (no-browser) exchanges cannot use a loopback redirect; this is sent when configured.
 export const GITCODE_REDIRECT_URI = process.env.HDCOMMUNITY_GITCODE_REDIRECT_URI || '';
 
