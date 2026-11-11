@@ -112,6 +112,13 @@ test('loopback callback server rejects a mismatched state', async () => {
   cb.close();
 });
 
+test('manual mode without a redirect URI fails with guidance instead of an unusable URL', async () => {
+  const r = await callTool('hdcommunity_auth_login', { wait: false });
+  assert.equal(r.ok, false);
+  assert.equal(r.error.code, 'PARAM_ERROR');
+  assert.match(r.error.message, /HDCOMMUNITY_GITCODE_REDIRECT_URI/);
+});
+
 test('cleanup', async () => {
   server.close();
   fs.rmSync(AUTH_FILE, { force: true });

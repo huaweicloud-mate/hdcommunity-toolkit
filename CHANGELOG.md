@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.5
+
+### Fixed — 手动登录模式
+- `hdcommunity_auth_login { wait: false }` 在未配置 `HDCOMMUNITY_GITCODE_REDIRECT_URI` 时不再返回缺少 `redirect_uri` 的不可用 URL，而是明确报错并提示：改用默认 `wait=true`（自动回环登录），或先配置回调地址。
+- README 同步说明手动模式的前置条件。
+
 ## 0.8.4
 
 ### Fixed
