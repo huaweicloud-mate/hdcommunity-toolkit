@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+### Security — 远程登录轮询密钥分离
+- 远程模式改为调用后端 `POST /agent/auth/gitcode/remote/start`，获取 `login_url` + `state` + **`poll_key`**；`poll_key` 仅插件持有，不放进授权 URL/二维码，避免 URL 泄露后被人抢先轮询窃取会话。
+- `hdcommunity_auth_poll` 优先使用 `poll_key`（兼容旧 `state`）；新增 `HDCOMMUNITY_GITCODE_REMOTE_START_PATH`。
+
 ## 0.9.0
 
 ### Added — GitCode 远程登录（跨机器）
