@@ -21,6 +21,7 @@ import {
   GITCODE_TICKET_PARAM,
   GITCODE_REDIRECT_URI,
   GITCODE_POLL_PATH,
+  GITCODE_REMOTE_START_PATH,
   DEFAULT_TIMEOUT_MS,
   LOGIN_TIMEOUT_MS,
 } from '../config.mjs';
@@ -227,30 +228,55 @@ export async function loginWithBrowser({ timeoutMs = LOGIN_TIMEOUT_MS, openBrows
   return ok({ ...ex.data, browser_opened: browserOpened, login_url: loginUrl });
 }
 /**
- * 远程模式（跨机器）：授权 URL，浏览器可在任意设备打开；不需要回环地址。
- * @param {string} state
+ * 远程模式（跨机器）：向后端申请一次性登录会话。
+ * 返回 { login_url, state, poll_key, expires_in }；poll_key 只给插件，不要放进 URL/二维码。
  */
-export function buildRemoteLoginUrl(state) {
-  const url = new URL(BACKEND_BASE.replace(/\/$/, '') + GITCODE_LOGIN_PATH);
-  url.searchParams.set('mode', 'poll');
-  url.searchParams.set('state', state);
-  return url.toString();
+export async function startRemoteSession() {
+  let resp;
+  try {
+    const res = await request(new URL(BACKEND_BASE.replace(/\/$/, '') + GITCODE_REMOTE_START_PATH), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+      bodyTimeout: DEFAULT_TIMEOUT_MS,
+      headersTimeout: DEFAULT_TIMEOUT_MS,
+    });
+    const text = await res.body.text();
+    let json = null;
+    if (text) {
+      try {
+        json = JSON.parse(text);
+      } catch {
+        /* non-JSON body */
+      }
+    }
+    resp = { status: res.statusCode, json, text };
+  } catch (e) {
+    resp = { transportError: e.message };
+  }
+  const r = unwrap(resp);
+  if (!r.ok) return r;
+  const d = r.data || {};
+  if (!d.login_url || !d.poll_key) {
+    return fail(CODES.AUTH_FAILED, '后端未返回远程登录参数（login_url/poll_key）');
+  }
+  return ok({ login_url: d.login_url, state: d.state, poll_key: d.poll_key, expires_in: d.expires_in });
 }
 
 /**
- * 远程模式：轮询后端登录结果（pending / token / error）。
- * @param {string} state
+ * 远程模式：用 poll_key 轮询后端登录结果（pending / token / error）。
+ * @param {string} pollKey
  */
-export async function pollRemote(state) {
-  if (!state || !String(state).trim()) {
-    return fail(CODES.PARAM_ERROR, '缺少 state');
+export async function pollRemote(pollKey) {
+  if (!pollKey || !String(pollKey).trim()) {
+    return fail(CODES.PARAM_ERROR, '缺少 poll_key');
   }
   let resp;
   try {
     const res = await request(new URL(BACKEND_BASE.replace(/\/$/, '') + GITCODE_POLL_PATH), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state: String(state) }),
+      body: JSON.stringify({ poll_key: String(pollKey) }),
       bodyTimeout: DEFAULT_TIMEOUT_MS,
       headersTimeout: DEFAULT_TIMEOUT_MS,
     });
