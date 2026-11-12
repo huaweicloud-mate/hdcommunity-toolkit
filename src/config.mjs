@@ -39,3 +39,7 @@ export const GITCODE_REMOTE_START_PATH =
 export const GITCODE_REDIRECT_URI = process.env.HDCOMMUNITY_GITCODE_REDIRECT_URI || '';
 
 export const LOGIN_TIMEOUT_MS = Number(process.env.HDCOMMUNITY_LOGIN_TIMEOUT_MS || 120000);
+
+// 登录兜底 URL 的存活窗口：工具等待窗口过后，回环服务继续监听这么久，
+// 保证「浏览器没自动打开/等待超时」返回的 login_url 在此期间仍可用于手动授权。
+export const LOGIN_URL_GRACE_MS = Number(process.env.HDCOMMUNITY_LOGIN_URL_GRACE_MS || 300000);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.2
+
+### Fixed — 登录兜底：浏览器拉起失败/超时返回 `login_url`
+- `openBrowser()` 不再吞错：监听子进程 `error` 事件与非零退出码，`spawn` 失败（Windows 无 `powershell`、`Start-Process` 报错、Linux 无 `xdg-open` 等）返回 `false`，结果体现 `browser_opened: false`（#37）。
+- 浏览器未能自动打开时 `hdcommunity_auth_login` 立即返回可直接打开的 `login_url`，不再空等到 120s 被 MCP 客户端判超时；等待超时的错误信息同样附带 `login_url`。
+- 回环服务在工具等待窗口结束后继续监听 `HDCOMMUNITY_LOGIN_URL_GRACE_MS`（默认 300s）：用户手动打开 `login_url` 完成授权后，票据由同一回环服务接收并自动换票落盘（生成 auth.json）。
+- 新增单测：spawn 失败、正常启动、`wait=true` 回环成功路径、浏览器未拉起兜底、超时兜底。
+
 ## 0.9.1
 
 ### Security — 远程登录轮询密钥分离

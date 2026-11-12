@@ -65,7 +65,7 @@ export const AUTH_TOOLS = {
     {
       name: 'hdcommunity_auth_login',
       description:
-        'Log in with a GitCode account (backend-initiated OAuth). Opens the browser and waits for the callback by default. 使用 GitCode 账号登录。',
+        'Log in with a GitCode account (backend-initiated OAuth). Opens the browser and waits for the callback by default. 使用 GitCode 账号登录。浏览器无法自动打开或等待超时时返回 browser_opened/login_url，可手动打开 login_url 完成授权。',
       inputSchema: {
         type: 'object',
         properties: {
@@ -169,7 +169,19 @@ export const AUTH_TOOLS = {
       }
 
       const timeoutMs = a.timeout_s ? Number(a.timeout_s) * 1000 : LOGIN_TIMEOUT_MS;
-      const r = await loginWithBrowser({ timeoutMs, openBrowser: a.open_browser !== false });
+      // 浏览器没自动打开 / 等待超时后，用户在 grace 窗口内手动打开 login_url 完成授权：
+      // 同一回环服务收到 ticket 后在这里换票落盘（会话静默生成，auth_status 可见）。
+      const completeManualLogin = async ({ state, redirectUri, result }) => {
+        const payload = await result;
+        if (!payload || payload.error || !payload.ticket) return;
+        const ex = await exchangeTicket(payload.ticket, { state, redirectUri });
+        if (ex.ok) persist(ex);
+      };
+      const r = await loginWithBrowser({
+        timeoutMs,
+        openBrowser: a.open_browser !== false,
+        onBrowserUnopened: completeManualLogin,
+      });
       if (!r.ok) return r;
       const saved = persist(ok(r.data));
       if (!saved.ok) return saved;
